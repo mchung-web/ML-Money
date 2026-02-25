@@ -3,143 +3,188 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ML Budget - 極簡記帳</title>
+    <title>ML Budget - 記帳長頸鹿</title>
+    <link rel="apple-touch-icon" href="https://files.oaiusercontent.com/file-2mP0N7uU9S8uO6XGqR8W1?se=2024-05-23T08%3A11%3A22Z&sp=r&sv=2021-08-06&sr=b&rscc=max-age%3D31536000%2C%20immutable&rscd=attachment%3B%20filename%3D42e97b4c-9a4f-4d2d-8b01-382a39287c88.webp&sig=WpL6HAnR0G9Z0vSgE8h/E/8j0S4R7O4N7X7D7V7E7I7A%3D">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { background-color: #F2F2F7; font-family: -apple-system, BlinkMacSystemFont, sans-serif; -webkit-tap-highlight-color: transparent; }
-        .ios-card { background: white; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .keypad-btn { background: white; border-radius: 15px; font-size: 24px; font-weight: 600; height: 60px; display: flex; align-items: center; justify-content: center; transition: all 0.1s; border: 1px solid #E5E5EA; }
+        body { background-color: #F2F2F7; font-family: -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
+        .ios-card { background: white; border-radius: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
+        .keypad-btn { background: white; border-radius: 18px; font-size: 24px; font-weight: 600; height: 64px; display: flex; align-items: center; justify-content: center; transition: 0.1s; border: 1px solid #E5E5EA; }
         .keypad-btn:active { background: #E5E5EA; transform: scale(0.95); }
         .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .giraffe-logo { filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect } = React;
+        const APP_ICON = "https://files.oaiusercontent.com/file-2mP0N7uU9S8uO6XGqR8W1?se=2024-05-23T08%3A11%3A22Z&sp=r&sv=2021-08-06&sr=b&rscc=max-age%3D31536000%2C%20immutable&rscd=attachment%3B%20filename%3D42e97b4c-9a4f-4d2d-8b01-382a39287c88.webp&sig=WpL6HAnR0G9Z0vSgE8h/E/8j0S4R7O4N7X7D7V7E7I7A%3D";
 
         function App() {
-            const [view, setView] = useState('input'); // input, history, stats
+            const [view, setView] = useState('input'); 
             const [amount, setAmount] = useState('0');
-            const [records, setRecords] = useState(() => JSON.parse(localStorage.getItem('ML_BUDGET_DATA') || '[]'));
+            const [records, setRecords] = useState(() => JSON.parse(localStorage.getItem('ML_BUDGET_V2_DATA') || '[]'));
             const [selectedCat, setSelectedCat] = useState('餐飲');
             
             const categories = [
-                {n: '餐飲', i: '🍔', c: '#FF9500'},
-                {n: '交通', i: '🚌', c: '#007AFF'},
-                {n: '購物', i: '🛍️', c: '#AF52DE'},
-                {n: '娛樂', i: '🎮', c: '#FF2D55'},
-                {n: '居家', i: '🏠', c: '#34C759'},
-                {n: '其他', i: '💰', c: '#8E8E93'}
+                {n: '餐飲', i: '🍔', c: 'bg-orange-500'},
+                {n: '交通', i: '🚌', c: 'bg-blue-500'},
+                {n: '購物', i: '🛍️', c: 'bg-purple-500'},
+                {n: '娛樂', i: '🎮', c: 'bg-pink-500'},
+                {n: '居家', i: '🏠', c: 'bg-green-500'},
+                {n: '其他', i: '💰', c: 'bg-gray-500'}
             ];
 
             useEffect(() => {
-                localStorage.setItem('ML_BUDGET_DATA', JSON.stringify(records));
+                localStorage.setItem('ML_BUDGET_V2_DATA', JSON.stringify(records));
             }, [records]);
 
-            const handleNumber = (num) => {
-                setAmount(prev => prev === '0' ? String(num) : prev + num);
-            };
-
-            const handleClear = () => setAmount('0');
-
             const handleSave = () => {
-                if (amount === '0') return;
+                if (amount === '0' || amount === '') return;
                 const newRecord = {
                     id: Date.now(),
                     amount: parseFloat(amount),
                     category: selectedCat,
-                    date: new Date().toLocaleDateString(),
-                    timestamp: new Date().getTime()
+                    timestamp: new Date().getTime(),
+                    dateStr: new Date().toISOString().split('T')[0]
                 };
                 setRecords([newRecord, ...records]);
                 setAmount('0');
-                alert('已記錄成功！');
             };
 
             return (
-                <div className="max-w-md mx-auto min-h-screen flex flex-col relative">
-                    {/* Header */}
-                    <div className="pt-14 px-6 pb-4">
-                        <h1 className="text-3xl font-black text-gray-900">ML Budget</h1>
+                <div className="max-w-md mx-auto min-h-screen flex flex-col bg-[#F2F2F7]">
+                    {/* Header with New Icon */}
+                    <div className="pt-14 px-6 pb-6 flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                            <img src={APP_ICON} className="w-12 h-12 rounded-xl giraffe-logo" alt="ML Budget Logo" />
+                            <div>
+                                <h1 className="text-2xl font-black text-gray-900 leading-none">ML Budget</h1>
+                                <p className="text-[10px] font-bold text-orange-500 mt-1 uppercase tracking-widest">Wealthy Giraffe</p>
+                            </div>
+                        </div>
+                        <div className="text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">PRO V2.1</div>
                     </div>
 
-                    {/* Main Content */}
-                    <div className="flex-1 px-6">
+                    <div className="flex-1 px-6 overflow-y-auto no-scrollbar pb-24">
                         {view === 'input' && (
                             <div className="space-y-6">
-                                {/* Display */}
-                                <div className="ios-card p-6 text-right">
-                                    <div className="text-xs font-bold text-gray-400 uppercase mb-1">本次支出金額 (HKD)</div>
-                                    <div className="text-5xl font-black text-blue-600 truncate">$ {amount}</div>
+                                <div className="ios-card p-8 text-right bg-gradient-to-br from-white to-orange-50/30 border border-white">
+                                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Expense Amount (HKD)</div>
+                                    <div className="text-6xl font-black text-gray-900 tracking-tighter">
+                                        <span className="text-2xl mr-1 text-orange-300 font-normal">$</span>{amount}
+                                    </div>
                                 </div>
 
-                                {/* Category Picker */}
                                 <div className="grid grid-cols-3 gap-3">
                                     {categories.map(cat => (
-                                        <button 
-                                            key={cat.n} 
-                                            onClick={() => setSelectedCat(cat.n)}
-                                            className={`p-3 rounded-2xl flex flex-col items-center gap-1 transition-all ${selectedCat === cat.n ? 'bg-blue-600 text-white shadow-lg scale-105' : 'bg-white text-gray-500'}`}
-                                        >
+                                        <button key={cat.n} onClick={() => setSelectedCat(cat.n)}
+                                            className={`p-4 rounded-2xl flex flex-col items-center gap-2 transition-all ${selectedCat === cat.n ? 'bg-gray-900 text-white shadow-xl scale-105' : 'bg-white text-gray-500'}`}>
                                             <span className="text-2xl">{cat.i}</span>
-                                            <span className="text-xs font-bold">{cat.n}</span>
+                                            <span className="text-[11px] font-black">{cat.n}</span>
                                         </button>
                                     ))}
                                 </div>
 
-                                {/* Keypad */}
-                                <div className="grid grid-cols-3 gap-3 pt-4">
+                                <div className="grid grid-cols-3 gap-3 pt-2">
                                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, '.', 0].map(n => (
-                                        <button key={n} onClick={() => handleNumber(n)} className="keypad-btn shadow-sm">{n}</button>
+                                        <button key={n} onClick={() => setAmount(prev => prev === '0' ? String(n) : prev + n)} className="keypad-btn shadow-sm">{n}</button>
                                     ))}
-                                    <button onClick={handleClear} className="keypad-btn text-red-500 shadow-sm">C</button>
-                                    <button onClick={handleSave} className="col-span-3 bg-gray-900 text-white h-16 rounded-2xl font-black text-xl shadow-xl mt-2 active:scale-95 transition-all">確認儲存支出</button>
+                                    <button onClick={() => setAmount('0')} className="keypad-btn text-red-500 shadow-sm font-black text-xl">C</button>
+                                    <button onClick={handleSave} className="col-span-3 bg-orange-500 text-white h-16 rounded-3xl font-black text-lg shadow-lg shadow-orange-100 mt-2 active:scale-95 transition-all">確認儲存支出</button>
                                 </div>
                             </div>
                         )}
 
-                        {view === 'history' && (
-                            <div className="space-y-4">
-                                <h2 className="font-bold text-gray-400 px-1">最近記錄</h2>
-                                {records.length === 0 && <div className="text-center py-20 text-gray-400">目前沒有記帳資料</div>}
-                                {records.map(r => (
-                                    <div key={r.id} className="ios-card p-4 flex justify-between items-center">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center text-lg">
-                                                {categories.find(c => c.n === r.category)?.i}
-                                            </div>
-                                            <div>
-                                                <div className="font-bold text-gray-800">{r.category}</div>
-                                                <div className="text-[10px] text-gray-400">{r.date}</div>
-                                            </div>
-                                        </div>
-                                        <div className="font-black text-lg text-red-500">-$ {r.amount}</div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                        {view === 'history' && <HistoryView records={records} setRecords={setRecords} categories={categories} />}
+                        {view === 'stats' && <StatsView records={records} categories={categories} />}
                     </div>
 
                     {/* Tab Bar */}
-                    <div className="bg-white/80 backdrop-blur-md border-t border-gray-100 px-10 py-4 flex justify-between safe-bottom sticky bottom-0">
+                    <div className="bg-white/80 backdrop-blur-xl border-t border-gray-100 px-10 py-4 flex justify-between safe-bottom fixed bottom-0 left-0 right-0 max-w-md mx-auto z-50">
                         <TabIcon active={view === 'input'} icon="➕" label="記帳" onClick={() => setView('input')} />
                         <TabIcon active={view === 'history'} icon="📜" label="明細" onClick={() => setView('history')} />
-                        <TabIcon active={view === 'stats'} icon="📊" label="分析" onClick={() => alert('分析功能開發中！')} />
+                        <TabIcon active={view === 'stats'} icon="📊" label="統計" onClick={() => setView('stats')} />
                     </div>
                 </div>
             );
         }
 
+        // --- Sub-views remain consistent but with styled elements ---
+
+        function HistoryView({ records, setRecords, categories }) {
+            return (
+                <div className="space-y-4">
+                    <h2 className="font-black text-gray-400 text-sm px-1 uppercase tracking-widest">Recent Transactions</h2>
+                    {records.map(r => (
+                        <div key={r.id} className="ios-card p-5 flex justify-between items-center border border-white">
+                            <div className="flex items-center gap-4">
+                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl ${categories.find(c=>c.n===r.category)?.c} bg-opacity-10`}>
+                                    {categories.find(c => c.n === r.category)?.i}
+                                </div>
+                                <div><div className="font-black text-gray-800">{r.category}</div><div className="text-[10px] text-gray-400 font-bold">{r.dateStr}</div></div>
+                            </div>
+                            <div className="font-black text-lg text-red-500">-$ {r.amount.toLocaleString()}</div>
+                        </div>
+                    ))}
+                    {records.length === 0 && <div className="text-center py-20 text-gray-300">尚無記錄</div>}
+                </div>
+            );
+        }
+
+        function StatsView({ records, categories }) {
+            const now = new Date();
+            const todayStr = now.toISOString().split('T')[0];
+            const isThisWeek = (t) => (now - new Date(t)) / 86400000 <= 7;
+
+            const daily = records.filter(r => r.dateStr === todayStr).reduce((s, r) => s + r.amount, 0);
+            const weekly = records.filter(r => isThisWeek(r.timestamp)).reduce((s, r) => s + r.amount, 0);
+            const monthly = records.filter(r => new Date(r.timestamp).getMonth() === now.getMonth()).reduce((s, r) => s + r.amount, 0);
+
+            const monthGroups = records.reduce((acc, r) => {
+                const m = r.dateStr.substring(0, 7);
+                acc[m] = (acc[m] || 0) + r.amount;
+                return acc;
+            }, {});
+
+            return (
+                <div className="space-y-6">
+                    <div className="grid grid-cols-2 gap-3">
+                        <StatBox title="TODAY" amount={daily} color="text-orange-500" />
+                        <StatBox title="THIS WEEK" amount={weekly} color="text-blue-500" />
+                        <StatBox title="THIS MONTH" amount={monthly} color="text-purple-600" colSpan="col-span-2" />
+                    </div>
+                    
+                    <div className="ios-card p-6 border border-white">
+                        <h3 className="font-black text-gray-900 mb-4">📅 Yearly Breakdown</h3>
+                        {Object.entries(monthGroups).map(([month, total]) => (
+                            <div key={month} className="flex justify-between items-center py-2 border-b border-gray-50">
+                                <span className="font-bold text-gray-600">{month}</span>
+                                <span className="font-black text-gray-900">$ {total.toLocaleString()}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        const StatBox = ({ title, amount, color, colSpan="" }) => (
+            <div className={`ios-card p-5 ${colSpan} border border-white`}>
+                <div className="text-[9px] font-black text-gray-400 tracking-widest mb-1">{title}</div>
+                <div className={`text-2xl font-black ${color}`}>$ {amount.toLocaleString()}</div>
+            </div>
+        );
+
         const TabIcon = ({ active, icon, label, onClick }) => (
-            <button onClick={onClick} className={`flex flex-col items-center gap-1 ${active ? 'text-blue-600' : 'text-gray-300'}`}>
-                <span className="text-xl">{icon}</span>
-                <span className="text-[10px] font-bold">{label}</span>
+            <button onClick={onClick} className={`flex flex-col items-center gap-1 transition-all ${active ? 'scale-110 text-orange-500' : 'text-gray-300'}`}>
+                <span className="text-2xl">{icon}</span>
+                <span className="text-[10px] font-black">{label}</span>
             </button>
         );
 
