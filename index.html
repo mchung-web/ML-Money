@@ -20,103 +20,40 @@
         .safe-pb { padding-bottom: calc(env(safe-area-inset-bottom) + 12px); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         
-        .swipe-item { position: relative; overflow: hidden; }
-        .delete-btn { position: absolute; right: 0; top: 0; bottom: 8px; width: 80px; background: #FF3B30; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; border-radius: 0 16px 16px 0; z-index: 0; }
-        .item-content { position: relative; z-index: 10; background: white; transition: transform 0.2s ease-out; border-radius: 16px; margin-bottom: 8px; }
+        /* 左滑刪除關鍵樣式 */
+        .swipe-container { position: relative; overflow: hidden; margin-bottom: 8px; border-radius: 16px; }
+        .delete-action { position: absolute; right: 0; top: 0; bottom: 0; width: 80px; background: #FF3B30; color: white; display: flex; align-items: center; justify-content: center; font-weight: 800; z-index: 1; }
+        .swipe-content { position: relative; z-index: 2; background: white; transition: transform 0.2s ease-out; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useMemo } = React;
+        const { useState, useEffect, useMemo, useRef } = React;
 
-        // --- 繪製正確樣式的長頸鹿 Icon ---
-        const generateCorrectIcon = () => {
+        // 生成桌面 Icon (長頸鹿 + 左上角藍色 $)
+        const generateIcon = () => {
             const canvas = document.createElement('canvas');
-            canvas.width = 180;
-            canvas.height = 180;
+            canvas.width = 180; canvas.height = 180;
             const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'white';
+            ctx.beginPath(); ctx.roundRect(0, 0, 180, 180, 40); ctx.fill();
             
-            // 1. 白色底卡
-            ctx.fillStyle = 'white';
-            ctx.beginPath();
-            ctx.roundRect(0, 0, 180, 180, 40);
-            ctx.fill();
+            // 繪製卡通長頸鹿
+            ctx.font = '110px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('🦒', 95, 105);
 
-            // 2. 繪製長頸鹿 (使用繪圖指令模擬你圖片中的全身黑色描邊風格)
-            const drawGiraffe = (x, y, scale) => {
-                ctx.save();
-                ctx.translate(x, y);
-                ctx.scale(scale, scale);
-                ctx.lineWidth = 4;
-                ctx.lineJoin = 'round';
-                ctx.strokeStyle = '#000';
-                ctx.fillStyle = '#FFB800'; // 經典長頸鹿黃
-
-                // 身體 & 脖子
-                ctx.beginPath();
-                ctx.moveTo(40, 120);
-                ctx.quadraticCurveTo(30, 120, 30, 100);
-                ctx.lineTo(35, 40); // 脖子
-                ctx.quadraticCurveTo(35, 20, 55, 20); // 頭部後方
-                ctx.lineTo(75, 25); // 嘴巴
-                ctx.lineTo(70, 40);
-                ctx.lineTo(55, 45); // 下巴
-                ctx.lineTo(55, 100); // 脖子回程
-                ctx.lineTo(85, 110); // 後背
-                ctx.lineTo(80, 140); // 後腿
-                ctx.lineTo(70, 140);
-                ctx.lineTo(75, 115);
-                ctx.lineTo(45, 115);
-                ctx.lineTo(40, 140); // 前腿
-                ctx.lineTo(30, 140);
-                ctx.closePath();
-                ctx.fill();
-                ctx.stroke();
-
-                // 斑點
-                ctx.fillStyle = '#964B00';
-                [ [45,60,4], [48,85,5], [60,110,6] ].forEach(s => {
-                    ctx.beginPath(); ctx.arc(s[0], s[1], s[2], 0, Math.PI*2); ctx.fill();
-                });
-                
-                // 眼睛
-                ctx.fillStyle = '#000';
-                ctx.beginPath(); ctx.arc(62, 32, 2.5, 0, Math.PI*2); ctx.fill();
-                ctx.restore();
-            };
-            drawGiraffe(45, 25, 0.95);
-
-            // 3. 藍色 $ 徽章 (左上角)
+            // 左上角藍色徽章
             ctx.fillStyle = '#007aff';
-            ctx.beginPath();
-            ctx.arc(35, 35, 25, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = 'white';
-            ctx.lineWidth = 4;
-            ctx.stroke();
-
-            // $ 文字
-            ctx.fillStyle = 'white';
-            ctx.font = 'bold 32px Arial';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('$', 35, 37);
+            ctx.beginPath(); ctx.arc(40, 40, 28, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = 'white'; ctx.lineWidth = 5; ctx.stroke();
+            ctx.fillStyle = 'white'; ctx.font = 'bold 36px Arial';
+            ctx.fillText('$', 40, 42);
 
             document.getElementById('dynamic-icon').href = canvas.toDataURL('image/png');
         };
-        generateCorrectIcon();
-
-        // 內部組件用的長頸鹿 Icon
-        const MLGiraffeLogo = () => (
-            <div className="relative w-12 h-12">
-                <img src="https://cdn-icons-png.flaticon.com/512/2395/2395826.png" className="w-full h-full object-contain" />
-                <div className="absolute -top-1 -left-1 w-5 h-5 bg-[#007aff] rounded-full flex items-center justify-center border-2 border-white shadow-sm z-10">
-                    <span className="text-[10px] text-white font-black leading-none">$</span>
-                </div>
-            </div>
-        );
+        generateIcon();
 
         function App() {
             const [view, setView] = useState('input'); 
@@ -140,19 +77,25 @@
 
             return (
                 <div className="flex flex-col h-full max-w-md mx-auto relative bg-[#F2F2F7]">
+                    {/* Header */}
                     <div className="flex-none pt-12 px-5 pb-3 flex justify-between items-center">
                         <div className="flex items-center gap-4">
-                            <MLGiraffeLogo />
+                            <div className="relative w-12 h-12 bg-white rounded-xl shadow-sm border flex items-center justify-center text-3xl">
+                                🦒
+                                <div className="absolute -top-1 -left-1 w-5 h-5 bg-[#007aff] rounded-full flex items-center justify-center border-2 border-white">
+                                    <span className="text-[10px] text-white font-black">$</span>
+                                </div>
+                            </div>
                             <h1 className="text-2xl font-black text-gray-900 tracking-tight">ML Budget</h1>
                         </div>
-                        <div className="px-2 py-1 bg-orange-100 text-orange-600 text-[10px] font-black rounded-lg">V3.6 PRO</div>
+                        <div className="px-2 py-1 bg-orange-100 text-orange-600 text-[10px] font-black rounded-lg">V3.7</div>
                     </div>
 
                     <div className="flex-1 px-4 overflow-hidden">
                         {view === 'input' ? (
                             <div className="flex flex-col h-full">
                                 <div className="flex-none ios-card p-5 text-right border mb-3">
-                                    <div className="text-[10px] font-bold text-gray-400 mb-1">EXPENSE (HKD)</div>
+                                    <div className="text-[10px] font-bold text-gray-400 mb-1 tracking-widest">EXPENSE (HKD)</div>
                                     <div className="text-5xl font-black tracking-tighter text-gray-900"><span className="text-2xl mr-1 text-orange-500">$</span>{amount}</div>
                                 </div>
                                 <div className="flex-none grid grid-cols-4 gap-2 mb-2">
@@ -162,15 +105,14 @@
                                         </button>
                                     ))}
                                     <button onClick={() => {
-                                        const name = prompt("分類名稱:");
-                                        if(name){ setCategories([...categories, {n:name, i:'🏷️'}]); setSelectedCat(name); }
+                                        const n = prompt("名稱:"); if(n) setCategories([...categories, {n, i:'🏷️'}]);
                                     }} className="py-3 rounded-2xl flex flex-col items-center bg-gray-50 text-gray-400 border border-dashed border-gray-300">
                                         <span className="text-xl mb-1">＋</span><span className="text-[10px] font-bold">新增</span>
                                     </button>
                                 </div>
                                 <div className="flex-1 grid grid-cols-3 gap-1.5 min-h-0">
-                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, '.', 0].map(n => (
-                                        <button key={n} onClick={() => setAmount(prev => prev === '0' && n !== '.' ? String(n) : prev + n)} className="keypad-btn shadow-sm">{n}</button>
+                                    {[1,2,3,4,5,6,7,8,9,'.',0].map(n => (
+                                        <button key={n} onClick={() => setAmount(p => p==='0' && n!=='.'?String(n):p+n)} className="keypad-btn shadow-sm">{n}</button>
                                     ))}
                                     <button onClick={() => setAmount('0')} className="keypad-btn text-red-500 font-bold shadow-sm">C</button>
                                 </div>
@@ -179,8 +121,9 @@
                         ) : view === 'history' ? (
                             <div className="h-full overflow-y-auto pb-32 no-scrollbar pt-2">
                                 {records.map(r => (
-                                    <SwipeableItem key={r.id} record={r} onDelete={() => setRecords(records.filter(x => x.id !== r.id))} categories={categories} />
+                                    <SwipeRow key={r.id} record={r} onDelete={() => setRecords(records.filter(x => x.id !== r.id))} categories={categories} />
                                 ))}
+                                {records.length === 0 && <div className="text-center py-20 text-gray-300 font-bold">尚無記錄</div>}
                             </div>
                         ) : (
                             <div className="h-full overflow-y-auto pb-32 no-scrollbar">
@@ -189,10 +132,11 @@
                         )}
                     </div>
 
+                    {/* Tab Bar */}
                     <div className="flex-none bg-white/95 backdrop-blur-md border-t px-12 pt-4 flex justify-between absolute bottom-0 left-0 right-0 safe-pb shadow-2xl">
-                        <TabBtn active={view === 'input'} icon="➕" label="記帳" onClick={() => setView('input')} />
-                        <TabBtn active={view === 'history'} icon="📜" label="明細" onClick={() => setView('history')} />
-                        <TabBtn active={view === 'stats'} icon="📊" label="統計" onClick={() => setView('stats')} />
+                        <TabBtn active={view==='input'} icon="➕" label="記帳" onClick={()=>setView('input')} />
+                        <TabBtn active={view==='history'} icon="📜" label="明細" onClick={()=>setView('history')} />
+                        <TabBtn active={view==='stats'} icon="📊" label="統計" onClick={()=>setView('stats')} />
                     </div>
                 </div>
             );
@@ -207,16 +151,24 @@
             );
         }
 
-        function SwipeableItem({ record, onDelete, categories }) {
-            const [currentX, setCurrentX] = useState(0);
-            let startX = 0;
+        // --- 修正後的左滑組件 ---
+        function SwipeRow({ record, onDelete, categories }) {
+            const [offsetX, setOffsetX] = useState(0);
+            const startX = useRef(0);
+
             return (
-                <div className="swipe-item" onTouchStart={e => startX = e.touches[0].clientX} onTouchMove={e => {
-                    const x = e.touches[0].clientX - startX;
-                    if (x < 0 && x > -100) setCurrentX(x);
-                }} onTouchEnd={() => setCurrentX(currentX < -50 ? -80 : 0)}>
-                    <div className="delete-btn" onClick={onDelete}>刪除</div>
-                    <div className="item-content p-4 flex justify-between items-center shadow-sm border border-gray-100" style={{ transform: `translateX(${currentX}px)` }}>
+                <div className="swipe-container">
+                    <div className="delete-action" onClick={onDelete}>刪除</div>
+                    <div 
+                        className="swipe-content p-4 flex justify-between items-center shadow-sm border border-gray-100"
+                        style={{ transform: `translateX(${offsetX}px)` }}
+                        onTouchStart={e => startX.current = e.touches[0].clientX}
+                        onTouchMove={e => {
+                            const diff = e.touches[0].clientX - startX.current;
+                            if (diff < 0 && diff > -100) setOffsetX(diff);
+                        }}
+                        onTouchEnd={() => setOffsetX(offsetX < -50 ? -80 : 0)}
+                    >
                         <div className="flex items-center gap-4">
                             <div className="w-11 h-11 bg-gray-50 rounded-2xl flex items-center justify-center text-2xl shadow-inner">
                                 {categories.find(c => c.n === record.category)?.i || '💰'}
@@ -244,14 +196,14 @@
             }, [range, records]);
 
             return (
-                <div className="space-y-4 pt-2">
+                <div className="space-y-4 pt-2 pb-10">
                     <div className="flex bg-white p-1 rounded-xl shadow-inner border">
                         {['today', 'week', 'month'].map(r => (
                             <button key={r} onClick={() => setRange(r)} className={`flex-1 py-2 text-[11px] font-black rounded-lg ${range === r ? 'bg-gray-900 text-white shadow-md' : 'text-gray-400'}`}>{r.toUpperCase()}</button>
                         ))}
                     </div>
                     <div className="ios-card p-6 bg-gray-900 text-white text-center shadow-xl">
-                        <div className="text-[10px] opacity-40 mb-1 font-bold">TOTAL SPENDING</div>
+                        <div className="text-[10px] opacity-40 mb-1 font-bold tracking-widest uppercase">{range} TOTAL</div>
                         <div className="text-4xl font-black tracking-tighter">$ {stats.total.toLocaleString()}</div>
                     </div>
                     <div className="ios-card p-4">
@@ -261,10 +213,10 @@
                                 <div key={name} className="mb-4 last:mb-0">
                                     <div className="flex justify-between text-sm font-bold mb-2">
                                         <span>{categories.find(c => c.n === name)?.i} {name}</span>
-                                        <span>${amt.toLocaleString()} <span className="text-gray-300 ml-1">{pct}%</span></span>
+                                        <span>${amt.toLocaleString()} <span className="text-gray-300 ml-1 font-normal">{pct}%</span></span>
                                     </div>
                                     <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                                        <div className="bg-orange-500 h-full" style={{width: `${pct}%`}}></div>
+                                        <div className="bg-orange-500 h-full transition-all duration-500" style={{width: `${pct}%`}}></div>
                                     </div>
                                 </div>
                             );
