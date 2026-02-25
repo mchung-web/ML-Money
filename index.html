@@ -3,18 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ML Budget V2.0 </title>
+    <title>ML Budget - 記帳長頸鹿</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
     <style>
-        body { background-color: #F2F2F7; font-family: -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
-        .ios-card { background: white; border-radius: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
-        .keypad-btn { background: white; border-radius: 18px; font-size: 24px; font-weight: 600; height: 64px; display: flex; align-items: center; justify-content: center; transition: all 0.1s; border: 1px solid #E5E5EA; }
+        body { background-color: #F2F2F7; font-family: -apple-system, sans-serif; overflow: hidden; position: fixed; width: 100%; height: 100%; }
+        .ios-card { background: white; border-radius: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .keypad-btn { background: white; border-radius: 12px; font-size: 20px; font-weight: 600; height: 44px; display: flex; align-items: center; justify-content: center; border: 1px solid #E5E5EA; transition: 0.1s; }
         .keypad-btn:active { background: #E5E5EA; transform: scale(0.95); }
         .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body>
@@ -23,82 +22,91 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
+        // 直接嵌入圖示 (Base64) 確保 100% 顯示
+        const GIRAFFE_ICON = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjI1IiBmaWxsPSIjRkZGRkZGIi8+PGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNDAiIGZpbGw9IiNGRkVCODkiLz48dGV4dCB4PSI1MCUiIHk9IjU1JSIgZm9udC1zaXplPSI1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPj🦒PC90ZXh0PjxjaXJjbGUgY3g9Ijc1IiBjeT0iMjUiIHI9IjE1IiBmaWxsPSIjRkZGRkZGIiBzdHJva2U9IiNFRUU1RUEiLz48dGV4dCB4PSI3NSUiIHk9IjMwJSIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzAwN0FGRiIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPiQ8L3RleHQ+PC9zdmc+";
+
         function App() {
             const [view, setView] = useState('input'); 
             const [amount, setAmount] = useState('0');
             const [records, setRecords] = useState(() => JSON.parse(localStorage.getItem('ML_BUDGET_V2_DATA') || '[]'));
-            const [selectedCat, setSelectedCat] = useState('餐飲');
-            
-            const categories = [
-                {n: '餐飲', i: '🍔', c: 'bg-orange-500'},
-                {n: '交通', i: '🚌', c: 'bg-blue-500'},
-                {n: '購物', i: '🛍️', c: 'bg-purple-500'},
-                {n: '娛樂', i: '🎮', c: 'bg-pink-500'},
-                {n: '居家', i: '🏠', c: 'bg-green-500'},
-                {n: '其他', i: '💰', c: 'bg-gray-500'}
-            ];
+            const [selectedCat, setSelectedCat] = useState('餐廳');
+            const [categories, setCategories] = useState(() => {
+                const saved = JSON.parse(localStorage.getItem('ML_BUDGET_CATS'));
+                return saved || [
+                    {n: '餐廳', i: '🍽️'}, {n: '日用品', i: '🧻'}, {n: '超市', i: '🛒'}, 
+                    {n: '車', i: '🚗'}, {n: '娛樂', i: '🎮'}, {n: '其他', i: '💰'}
+                ];
+            });
 
-            useEffect(() => {
-                localStorage.setItem('ML_BUDGET_V2_DATA', JSON.stringify(records));
-            }, [records]);
+            useEffect(() => { localStorage.setItem('ML_BUDGET_V2_DATA', JSON.stringify(records)); }, [records]);
+            useEffect(() => { localStorage.setItem('ML_BUDGET_CATS', JSON.stringify(categories)); }, [categories]);
 
             const handleSave = () => {
-                if (amount === '0' || amount === '') return;
-                const newRecord = {
-                    id: Date.now(),
-                    amount: parseFloat(amount),
-                    category: selectedCat,
-                    timestamp: new Date().getTime(),
-                    dateStr: new Date().toISOString().split('T')[0] // YYYY-MM-DD
-                };
-                setRecords([newRecord, ...records]);
+                if (amount === '0') return;
+                setRecords([{ id: Date.now(), amount: parseFloat(amount), category: selectedCat, dateStr: new Date().toISOString().split('T')[0], timestamp: Date.now() }, ...records]);
                 setAmount('0');
             };
 
+            const addCategory = () => {
+                const name = prompt("新增分類名稱:");
+                if (name) setCategories([...categories, {n: name, i: '🏷️'}]);
+            };
+
             return (
-                <div className="max-w-md mx-auto min-h-screen flex flex-col bg-[#F2F2F7]">
-                    <div className="pt-14 px-6 pb-4 flex justify-between items-end">
-                        <h1 className="text-3xl font-black text-gray-900 tracking-tight">ML Budget</h1>
-                        <div className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">V2.0 Pro</div>
+                <div className="max-w-md mx-auto h-screen flex flex-col bg-[#F2F2F7] safe-bottom">
+                    {/* Header - 極度簡化高度 */}
+                    <div className="pt-8 px-5 pb-2 flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                            <img src={GIRAFFE_ICON} className="w-10 h-10 rounded-lg shadow-sm" />
+                            <h1 className="text-xl font-black text-gray-900">ML Budget</h1>
+                        </div>
+                        <div className="text-[10px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full">V2.3</div>
                     </div>
 
-                    <div className="flex-1 px-6 overflow-y-auto no-scrollbar pb-24">
-                        {view === 'input' && (
-                            <div className="space-y-6 animate-in fade-in duration-500">
-                                <div className="ios-card p-8 text-right bg-gradient-to-br from-white to-gray-50 border border-white">
-                                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Expense Amount (HKD)</div>
-                                    <div className="text-6xl font-black text-gray-900 truncate tracking-tighter">
-                                        <span className="text-2xl mr-1 text-gray-300 font-normal">$</span>{amount}
+                    <div className="flex-1 px-4 flex flex-col overflow-hidden">
+                        {view === 'input' ? (
+                            <div className="flex flex-col h-full justify-between pb-20">
+                                {/* 金額顯示區 */}
+                                <div className="ios-card p-4 text-right border border-white">
+                                    <div className="text-[9px] font-bold text-gray-400 uppercase mb-1">Expense (HKD)</div>
+                                    <div className="text-4xl font-black text-gray-900 truncate tracking-tighter">
+                                        <span className="text-xl mr-1 text-orange-400">$</span>{amount}
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-3">
+                                {/* 分類區 - 調整尺寸以一頁顯示 */}
+                                <div className="grid grid-cols-4 gap-1.5 py-1">
                                     {categories.map(cat => (
                                         <button key={cat.n} onClick={() => setSelectedCat(cat.n)}
-                                            className={`p-4 rounded-2xl flex flex-col items-center gap-2 transition-all ${selectedCat === cat.n ? 'bg-gray-900 text-white shadow-xl scale-105' : 'bg-white text-gray-500'}`}>
-                                            <span className="text-2xl">{cat.i}</span>
-                                            <span className="text-[11px] font-black">{cat.n}</span>
+                                            className={`py-2 rounded-xl flex flex-col items-center border transition-all ${selectedCat === cat.n ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-500 border-transparent'}`}>
+                                            <span className="text-lg">{cat.i}</span>
+                                            <span className="text-[10px] font-bold truncate w-full text-center">{cat.n}</span>
                                         </button>
                                     ))}
+                                    <button onClick={addCategory} className="py-2 rounded-xl flex flex-col items-center bg-gray-50 text-gray-400 border border-dashed border-gray-300">
+                                        <span className="text-lg">＋</span>
+                                        <span className="text-[10px] font-bold">新增</span>
+                                    </button>
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-3 pt-2">
+                                {/* 鍵盤區 - 緊湊排列 */}
+                                <div className="grid grid-cols-3 gap-1.5 mt-auto">
                                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, '.', 0].map(n => (
                                         <button key={n} onClick={() => setAmount(prev => prev === '0' ? String(n) : prev + n)} className="keypad-btn shadow-sm">{n}</button>
                                     ))}
-                                    <button onClick={() => setAmount('0')} className="keypad-btn text-red-500 shadow-sm font-black">C</button>
-                                    <button onClick={handleSave} className="col-span-3 bg-blue-600 text-white h-16 rounded-3xl font-black text-lg shadow-lg shadow-blue-200 mt-2 active:scale-95 transition-all">儲存支出記錄</button>
+                                    <button onClick={() => setAmount('0')} className="keypad-btn text-red-500 font-bold">C</button>
+                                    <button onClick={handleSave} className="col-span-3 bg-orange-500 text-white h-12 rounded-2xl font-black text-lg shadow-lg active:scale-95 transition-all mt-1">儲存記錄</button>
                                 </div>
                             </div>
+                        ) : (
+                            <div className="h-full overflow-y-auto pb-24 pt-2">
+                                {view === 'history' ? <HistoryView records={records} /> : <StatsView records={records} />}
+                            </div>
                         )}
-
-                        {view === 'history' && <HistoryView records={records} setRecords={setRecords} categories={categories} />}
-                        
-                        {view === 'stats' && <StatsView records={records} categories={categories} />}
                     </div>
 
                     {/* Tab Bar */}
-                    <div className="bg-white/80 backdrop-blur-xl border-t border-gray-100 px-10 py-4 flex justify-between safe-bottom fixed bottom-0 left-0 right-0 max-w-md mx-auto">
+                    <div className="bg-white/90 backdrop-blur-md border-t border-gray-100 px-10 py-3 flex justify-between fixed bottom-0 left-0 right-0 max-w-md mx-auto z-50 safe-bottom">
                         <TabIcon active={view === 'input'} icon="➕" label="記帳" onClick={() => setView('input')} />
                         <TabIcon active={view === 'history'} icon="📜" label="明細" onClick={() => setView('history')} />
                         <TabIcon active={view === 'stats'} icon="📊" label="統計" onClick={() => setView('stats')} />
@@ -107,126 +115,34 @@
             );
         }
 
-        function HistoryView({ records, setRecords, categories }) {
-            const deleteRecord = (id) => {
-                if(confirm("確定刪除此記錄？")) setRecords(records.filter(r => r.id !== id));
-            };
-            return (
-                <div className="space-y-4 animate-in slide-in-from-right duration-300">
-                    <h2 className="font-black text-gray-400 text-sm px-1 uppercase tracking-widest">Recent Transactions</h2>
-                    {records.length === 0 && <div className="text-center py-20 text-gray-300 font-medium">尚無任何支出記錄 🦒</div>}
-                    {records.map(r => (
-                        <div key={r.id} className="ios-card p-5 flex justify-between items-center border border-white">
-                            <div className="flex items-center gap-4">
-                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-inner ${categories.find(c=>c.n===r.category)?.c} bg-opacity-10 text-opacity-100`}>
-                                    {categories.find(c => c.n === r.category)?.i}
-                                </div>
-                                <div>
-                                    <div className="font-black text-gray-800">{r.category}</div>
-                                    <div className="text-[10px] text-gray-400 font-bold">{r.dateStr}</div>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-4">
-                                <div className="font-black text-lg text-red-500">-$ {r.amount.toLocaleString()}</div>
-                                <button onClick={() => deleteRecord(r.id)} className="text-gray-200 hover:text-red-200">✕</button>
-                            </div>
-                        </div>
-                    ))}
+        function HistoryView({ records }) {
+            return records.map(r => (
+                <div key={r.id} className="ios-card p-4 flex justify-between items-center mb-2">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-xl">🏷️</div>
+                        <div><div className="font-bold text-sm text-gray-800">{r.category}</div><div className="text-[9px] text-gray-400">{r.dateStr}</div></div>
+                    </div>
+                    <div className="font-black text-red-500">-$ {r.amount}</div>
                 </div>
-            );
+            ));
         }
 
-        function StatsView({ records, categories }) {
-            const now = new Date();
-            const todayStr = now.toISOString().split('T')[0];
-            
-            // Helper for Date grouping
-            const isThisWeek = (t) => {
-                const date = new Date(t);
-                const diff = (now - date) / (1000 * 60 * 60 * 24);
-                return diff <= 7;
-            };
-
-            const daily = records.filter(r => r.dateStr === todayStr).reduce((s, r) => s + r.amount, 0);
-            const weekly = records.filter(r => isThisWeek(r.timestamp)).reduce((s, r) => s + r.amount, 0);
-            const monthly = records.filter(r => new Date(r.timestamp).getMonth() === now.getMonth() && new Date(r.timestamp).getFullYear() === now.getFullYear()).reduce((s, r) => s + r.amount, 0);
-
-            // Group by Month for "All Months"
-            const monthGroups = records.reduce((acc, r) => {
-                const m = r.dateStr.substring(0, 7); // YYYY-MM
-                acc[m] = (acc[m] || 0) + r.amount;
-                return acc;
-            }, {});
-
-            const sortedMonths = Object.entries(monthGroups).sort((a,b) => b[0].localeCompare(a[0]));
-
+        function StatsView({ records }) {
+            const total = records.reduce((s, r) => s + r.amount, 0);
             return (
-                <div className="space-y-6 animate-in slide-in-from-right duration-300">
-                    {/* Quick Overview */}
-                    <div className="grid grid-cols-2 gap-3">
-                        <StatBox title="TODAY" amount={daily} color="text-orange-500" />
-                        <StatBox title="THIS WEEK" amount={weekly} color="text-blue-500" />
-                        <StatBox title="THIS MONTH" amount={monthly} color="text-purple-600" colSpan="col-span-2" />
-                    </div>
-
-                    {/* All Months Breakdown */}
-                    <div className="ios-card p-6">
-                        <h3 className="font-black text-gray-900 mb-4 flex items-center gap-2">
-                            <span>📅</span> Yearly Breakdown
-                        </h3>
-                        <div className="space-y-4">
-                            {sortedMonths.length === 0 && <p className="text-gray-400 text-xs italic">No monthly data available</p>}
-                            {sortedMonths.map(([month, total]) => (
-                                <div key={month} className="flex justify-between items-end border-b border-gray-50 pb-2">
-                                    <div>
-                                        <div className="text-[10px] font-black text-gray-400 uppercase">{month.split('-')[0]}</div>
-                                        <div className="font-bold text-gray-700">{month.split('-')[1]}月</div>
-                                    </div>
-                                    <div className="font-black text-gray-900">$ {total.toLocaleString()}</div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Category Logic */}
-                    <div className="ios-card p-6">
-                        <h3 className="font-black text-gray-900 mb-4">支出分佈 (本月)</h3>
-                        <div className="space-y-4">
-                            {categories.map(c => {
-                                const catTotal = records
-                                    .filter(r => r.category === c.n && new Date(r.timestamp).getMonth() === now.getMonth())
-                                    .reduce((s, r) => s + r.amount, 0);
-                                const percent = monthly > 0 ? (catTotal / monthly * 100).toFixed(0) : 0;
-                                if(catTotal === 0) return null;
-                                return (
-                                    <div key={c.n}>
-                                        <div className="flex justify-between text-xs font-bold mb-1">
-                                            <span className="text-gray-500">{c.i} {c.n}</span>
-                                            <span className="text-gray-900">{percent}%</span>
-                                        </div>
-                                        <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                                            <div className={`${c.c} h-full transition-all duration-1000`} style={{width: `${percent}%`}}></div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                <div className="space-y-4">
+                    <div className="ios-card p-5 bg-gray-900 text-white text-center">
+                        <div className="text-[10px] opacity-50 mb-1">TOTAL EXPENSES</div>
+                        <div className="text-3xl font-black">$ {total.toLocaleString()}</div>
                     </div>
                 </div>
             );
         }
-
-        const StatBox = ({ title, amount, color, colSpan="" }) => (
-            <div className={`ios-card p-5 ${colSpan} border border-white`}>
-                <div className="text-[9px] font-black text-gray-400 tracking-widest uppercase mb-1">{title}</div>
-                <div className={`text-2xl font-black ${color}`}>$ {amount.toLocaleString()}</div>
-            </div>
-        );
 
         const TabIcon = ({ active, icon, label, onClick }) => (
-            <button onClick={onClick} className={`flex flex-col items-center gap-1 transition-all ${active ? 'scale-110 text-blue-600' : 'text-gray-300 opacity-50'}`}>
-                <span className="text-2xl">{icon}</span>
-                <span className="text-[10px] font-black tracking-tighter">{label}</span>
+            <button onClick={onClick} className={`flex flex-col items-center gap-0.5 ${active ? 'text-orange-500' : 'text-gray-300'}`}>
+                <span className="text-xl">{icon}</span>
+                <span className="text-[9px] font-bold">{label}</span>
             </button>
         );
 
