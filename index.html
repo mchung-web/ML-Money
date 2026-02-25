@@ -9,15 +9,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
     <style>
-        :root { --ios-bg: #F2F2F7; }
-        body { background-color: var(--ios-bg); font-family: -apple-system, sans-serif; overflow: hidden; height: 100dvh; margin: 0; }
-        #root { height: 100dvh; display: flex; flex-direction: column; }
+        body { background-color: #F2F2F7; font-family: -apple-system, sans-serif; overflow: hidden; height: 100dvh; margin: 0; }
+        #root { height: 100dvh; }
         .ios-card { background: white; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
-        .keypad-btn { background: white; border-radius: 12px; font-size: 24px; font-weight: 600; flex: 1; display: flex; align-items: center; justify-content: center; border: 1px solid #E5E5EA; margin: 1px; }
+        .keypad-btn { background: white; border-radius: 10px; font-size: 24px; font-weight: 600; flex: 1; display: flex; align-items: center; justify-content: center; border: 1px solid #E5E5EA; margin: 1px; }
         .keypad-btn:active { background: #E5E5EA; }
         .safe-pb { padding-bottom: env(safe-area-inset-bottom); }
-        /* 移除間距的關鍵 */
-        .no-gap-grid { gap: 0 !important; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body>
@@ -26,19 +24,17 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // (b) 完全還原 ML Travel 風格：全身長頸鹿 + 右上角藍色 $
+        // (b) 還原 ML Travel 風格：全身長頸鹿 + $ 標誌
         const MLGiraffeIcon = () => (
             <svg width="44" height="44" viewBox="0 0 100 100" style={{borderRadius: '10px', background: 'white', border: '1px solid #EEE'}}>
-                {/* 簡化版立體長頸鹿 (模仿截圖中的 ML Travel Icon) */}
-                <path d="M40 85 L40 75 M60 85 L60 75" stroke="#000" strokeWidth="2" /> {/* 腿 */}
-                <path d="M40 75 Q50 80 60 75 L60 55 Q50 50 40 55 Z" fill="#FFD54F" stroke="#000" strokeWidth="1.5" /> {/* 身體 */}
-                <path d="M52 55 L52 25" stroke="#FFD54F" strokeWidth="8" strokeLinecap="round" /> {/* 脖子 */}
-                <circle cx="58" cy="22" r="7" fill="#FFD54F" stroke="#000" strokeWidth="1.5" /> {/* 頭部 */}
-                <path d="M56 16 L54 10 M60 16 L62 10" stroke="#000" strokeWidth="1.5" /> {/* 角 */}
-                <circle cx="45" cy="65" r="2.5" fill="#795548" /> {/* 斑點 */}
-                <circle cx="55" cy="60" r="2" fill="#795548" />
-                <circle cx="52" cy="40" r="2" fill="#795548" />
-                {/* 右上角藍色 $ 圓圈標誌 */}
+                <path d="M42 82 L42 75 M58 82 L58 75" stroke="#000" strokeWidth="2.5" />
+                <path d="M40 75 Q50 82 60 75 L62 50 Q50 45 38 50 Z" fill="#FFD54F" stroke="#000" strokeWidth="1.5" />
+                <path d="M54 50 L54 22" stroke="#FFD54F" strokeWidth="8" strokeLinecap="round" />
+                <circle cx="60" cy="20" r="7" fill="#FFD54F" stroke="#000" strokeWidth="1.5" />
+                <path d="M58 14 L56 8 M62 14 L64 8" stroke="#000" strokeWidth="1.5" />
+                <circle cx="45" cy="65" r="3" fill="#795548" />
+                <circle cx="55" cy="60" r="2.5" fill="#795548" />
+                <circle cx="52" cy="35" r="2.5" fill="#795548" />
                 <circle cx="82" cy="18" r="14" fill="#007AFF" />
                 <text x="82" y="24" fontSize="16" fill="white" fontWeight="900" textAnchor="middle">$</text>
             </svg>
@@ -50,11 +46,15 @@
             const [records, setRecords] = useState(() => JSON.parse(localStorage.getItem('ML_BUDGET_V2_DATA') || '[]'));
             const [selectedCat, setSelectedCat] = useState('餐廳');
             
-            // (c) Default 分類：移除「車」
-            const [categories, setCategories] = useState(() => JSON.parse(localStorage.getItem('ML_BUDGET_CATS')) || [
-                {n: '餐廳', i: '🍽️'}, {n: '日用品', i: '🧻'}, {n: '超市', i: '🛒'}, 
-                {n: '娛樂', i: '🎮'}, {n: '其他', i: '💰'}
-            ]);
+            // (c) 移除「車」分類，預設五個
+            const [categories, setCategories] = useState(() => {
+                const saved = JSON.parse(localStorage.getItem('ML_BUDGET_CATS'));
+                if (saved) return saved.filter(c => c.n !== '車'); // 二次確認移除
+                return [
+                    {n: '餐廳', i: '🍽️'}, {n: '日用品', i: '🧻'}, {n: '超市', i: '🛒'}, 
+                    {n: '娛樂', i: '🎮'}, {n: '其他', i: '💰'}
+                ];
+            });
 
             useEffect(() => { localStorage.setItem('ML_BUDGET_V2_DATA', JSON.stringify(records)); }, [records]);
             useEffect(() => { localStorage.setItem('ML_BUDGET_CATS', JSON.stringify(categories)); }, [categories]);
@@ -65,11 +65,10 @@
                 setAmount('0');
             };
 
-            // (c) 新增功能：先問名稱，再問 Emoji
             const addCategory = () => {
-                const name = prompt("輸入新分類名稱 (例如: 買衣服):");
+                const name = prompt("輸入分類名稱:");
                 if (name) {
-                    const emoji = prompt("請選擇一個 Emoji 代表此分類:", "🛍️");
+                    const emoji = prompt("請貼上一個 Emoji 圖示:", "🏷️");
                     setCategories([...categories, {n: name, i: emoji || '🏷️'}]);
                 }
             };
@@ -77,19 +76,18 @@
             return (
                 <div className="flex flex-col h-full max-w-md mx-auto relative bg-[#F2F2F7]">
                     {/* Header */}
-                    <div className="flex-none pt-10 px-5 pb-3 flex justify-between items-center">
+                    <div className="flex-none pt-10 px-5 pb-2 flex justify-between items-center">
                         <div className="flex items-center gap-3">
                             <MLGiraffeIcon />
                             <h1 className="text-2xl font-black text-gray-900 tracking-tight">ML Budget</h1>
                         </div>
-                        <div className="px-2 py-0.5 bg-blue-50 text-blue-500 text-[10px] font-bold rounded-full">V2.6</div>
+                        <div className="px-2 py-0.5 bg-blue-50 text-blue-500 text-[10px] font-bold rounded-full">V2.7</div>
                     </div>
 
-                    {/* 主要內容區 */}
                     <div className="flex-1 flex flex-col px-4 overflow-hidden">
                         {view === 'input' ? (
                             <div className="flex flex-col h-full">
-                                {/* 金額顯示 */}
+                                {/* 金額區 */}
                                 <div className="flex-none ios-card p-4 text-right border border-white mb-2">
                                     <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Expense (HKD)</div>
                                     <div className="text-5xl font-black text-gray-900 tracking-tighter">
@@ -97,11 +95,11 @@
                                     </div>
                                 </div>
 
-                                {/* 分類區 - 緊湊排版 */}
+                                {/* 分類區 - 緊密排列 */}
                                 <div className="flex-none grid grid-cols-4 gap-1.5 mb-1.5">
                                     {categories.map(cat => (
                                         <button key={cat.n} onClick={() => setSelectedCat(cat.n)}
-                                            className={`py-2 rounded-xl flex flex-col items-center border transition-all ${selectedCat === cat.n ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-500 border-transparent'}`}>
+                                            className={`py-2 rounded-xl flex flex-col items-center border transition-all ${selectedCat === cat.n ? 'bg-gray-900 text-white border-gray-900 shadow-md' : 'bg-white text-gray-500 border-transparent'}`}>
                                             <span className="text-xl">{cat.i}</span>
                                             <span className="text-[10px] font-bold truncate px-1">{cat.n}</span>
                                         </button>
@@ -112,16 +110,16 @@
                                     </button>
                                 </div>
 
-                                {/* 數字鍵盤 - 移除多餘間距並填滿空間 */}
-                                <div className="flex-1 grid grid-cols-3 no-gap-grid min-h-0">
+                                {/* 鍵盤區 - 零間距適配 */}
+                                <div className="flex-1 grid grid-cols-3 gap-0 min-h-0">
                                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, '.', 0].map(n => (
                                         <button key={n} onClick={() => setAmount(prev => prev === '0' && n !== '.' ? String(n) : prev + n)} className="keypad-btn">{n}</button>
                                     ))}
                                     <button onClick={() => setAmount('0')} className="keypad-btn text-red-500 font-bold">C</button>
                                 </div>
 
-                                {/* 儲存按鈕 - 確保在導航欄上方 */}
-                                <button onClick={handleSave} className="flex-none bg-orange-500 text-white h-12 rounded-xl font-black text-lg shadow-lg active:scale-95 transition-all mt-2 mb-[60px]">
+                                {/* 儲存按鈕 */}
+                                <button onClick={handleSave} className="flex-none bg-orange-500 text-white h-12 rounded-xl font-black text-lg shadow-lg active:scale-95 transition-all mt-2 mb-[55px]">
                                     儲存支出記錄
                                 </button>
                             </div>
@@ -132,8 +130,8 @@
                         )}
                     </div>
 
-                    {/* (a) 修正 Tab Bar：高度極致壓縮 */}
-                    <div className="flex-none bg-white/95 backdrop-blur-md border-t border-gray-100 px-10 py-1.5 flex justify-between absolute bottom-0 left-0 right-0 safe-pb">
+                    {/* (a) Tab Bar：高度極度壓縮 */}
+                    <div className="flex-none bg-white/95 backdrop-blur-md border-t border-gray-100 px-12 py-1 flex justify-between absolute bottom-0 left-0 right-0 safe-pb">
                         <TabIcon active={view === 'input'} icon="➕" label="記帳" onClick={() => setView('input')} />
                         <TabIcon active={view === 'history'} icon="📜" label="明細" onClick={() => setView('history')} />
                         <TabIcon active={view === 'stats'} icon="📊" label="統計" onClick={() => setView('stats')} />
@@ -142,7 +140,6 @@
             );
         }
 
-        // 明細與統計頁面保持精簡
         function HistoryView({ records, categories }) {
             return records.length ? records.map(r => (
                 <div key={r.id} className="ios-card p-4 flex justify-between items-center mb-2">
@@ -154,7 +151,7 @@
                     </div>
                     <div className="font-black text-red-500">-$ {r.amount}</div>
                 </div>
-            )) : <div className="text-center py-20 text-gray-300 font-bold">尚無記錄</div>;
+            )) : <div className="text-center py-20 text-gray-300">尚無記錄</div>;
         }
 
         function StatsView({ records }) {
@@ -162,7 +159,7 @@
             return (
                 <div className="space-y-4">
                     <div className="ios-card p-6 bg-gray-900 text-white text-center">
-                        <div className="text-[10px] opacity-40 mb-1 tracking-widest">TOTAL BALANCE</div>
+                        <div className="text-[10px] opacity-40 mb-1 tracking-widest uppercase">Total Balance</div>
                         <div className="text-4xl font-black">$ {total.toLocaleString()}</div>
                     </div>
                 </div>
@@ -172,7 +169,7 @@
         const TabIcon = ({ active, icon, label, onClick }) => (
             <button onClick={onClick} className={`flex flex-col items-center ${active ? 'text-orange-500' : 'text-gray-300'}`}>
                 <span className="text-xl leading-none">{icon}</span>
-                <span className="text-[9px] font-bold mt-0.5">{label}</span>
+                <span className="text-[8px] font-bold mt-0.5">{label}</span>
             </button>
         );
 
