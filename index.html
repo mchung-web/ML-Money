@@ -13,30 +13,13 @@
         body { background-color: #F2F2F7; font-family: -apple-system, sans-serif; overflow: hidden; height: 100dvh; margin: 0; }
         #root { height: 100dvh; }
         .ios-card { background: white; border-radius: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
-        
-        /* 分類區域滾動優化 */
-        .category-scroll-area {
-            max-height: 160px; /* 限制約兩排的高度 */
-            overflow-y: auto;
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-            padding: 4px;
-        }
+        .category-scroll-area { max-height: 160px; overflow-y: auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 4px; }
         .category-scroll-area::-webkit-scrollbar { display: none; }
-
-        /* 鍵盤高度優化 */
         .keypad-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-        .keypad-btn { 
-            background: white; border-radius: 12px; font-size: 24px; font-weight: 600; 
-            height: 56px; display: flex; align-items: center; justify-content: center; 
-            border: 1px solid #E5E5EA;
-        }
+        .keypad-btn { background: white; border-radius: 12px; font-size: 24px; font-weight: 600; height: 56px; display: flex; align-items: center; justify-content: center; border: 1px solid #E5E5EA; }
         .keypad-btn:active { background: #E5E5EA; }
-        
         .safe-pb { padding-bottom: calc(env(safe-area-inset-bottom) + 12px); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        
         .swipe-container { position: relative; overflow: hidden; margin-bottom: 8px; border-radius: 16px; }
         .delete-action { position: absolute; right: 0; top: 0; bottom: 0; width: 80px; background: #FF3B30; color: white; display: flex; align-items: center; justify-content: center; font-weight: 800; z-index: 1; }
         .swipe-content { position: relative; z-index: 2; background: white; transition: transform 0.2s ease-out; }
@@ -48,6 +31,7 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef } = React;
 
+        // Icon 生成邏輯
         const generateIcon = () => {
             const canvas = document.createElement('canvas');
             canvas.width = 180; canvas.height = 180;
@@ -76,10 +60,7 @@
             const [selectedCat, setSelectedCat] = useState('餐廳');
             const [categories, setCategories] = useState(() => {
                 const saved = JSON.parse(localStorage.getItem('ML_BUDGET_CATS'));
-                const defaults = [
-                    {n:'餐廳',i:'🍽️'},{n:'日用品',i:'🧻'},{n:'超市',i:'🛒'},
-                    {n:'娛樂',i:'🎮'},{n:'車',i:'🚗'},{n:'其他',i:'💰'}
-                ];
+                const defaults = [{n:'餐廳',i:'🍽️'},{n:'日用品',i:'🧻'},{n:'超市',i:'🛒'},{n:'娛樂',i:'🎮'},{n:'車',i:'🚗'},{n:'其他',i:'💰'}];
                 return (saved && Array.isArray(saved)) ? saved : defaults;
             });
 
@@ -105,7 +86,7 @@
                             </div>
                             <h1 className="text-xl font-black text-gray-900 tracking-tight">ML Budget</h1>
                         </div>
-                        <div className="px-2 py-0.5 bg-orange-100 text-orange-600 text-[10px] font-black rounded">V4.1</div>
+                        <div className="px-2 py-0.5 bg-orange-100 text-orange-600 text-[10px] font-black rounded">V4.2</div>
                     </div>
 
                     <div className="flex-1 px-4 overflow-hidden flex flex-col">
@@ -115,8 +96,6 @@
                                     <div className="text-[10px] font-bold text-gray-400 uppercase">Expense (HKD)</div>
                                     <div className="text-4xl font-black text-gray-900 tracking-tighter"><span className="text-xl mr-1 text-orange-500">$</span>{amount}</div>
                                 </div>
-
-                                {/* Categories - Scrollable Area */}
                                 <div className="flex-none mb-2">
                                     <div className="category-scroll-area no-scrollbar">
                                         {categories.map(cat => (
@@ -131,21 +110,14 @@
                                         </button>
                                     </div>
                                 </div>
-
-                                {/* Keypad */}
                                 <div className="keypad-grid flex-none">
                                     {[1,2,3,4,5,6,7,8,9,'.',0].map(n => (
                                         <button key={n} onClick={() => setAmount(p => p==='0' && n!=='.'?String(n):p+n)} className="keypad-btn shadow-sm">{n}</button>
                                     ))}
                                     <button onClick={() => setAmount('0')} className="keypad-btn text-red-500 font-bold shadow-sm">C</button>
                                 </div>
-
-                                {/* Fixed Save Button */}
-                                <button onClick={handleSave} className="flex-none bg-[#FF6B00] text-white h-12 rounded-2xl font-black text-lg shadow-lg mt-3 active:scale-95 transition-transform">
-                                    儲存支出
-                                </button>
-                                
-                                <div className="h-24 flex-none"></div> {/* 固定底部緩衝空間 */}
+                                <button onClick={handleSave} className="flex-none bg-[#FF6B00] text-white h-12 rounded-2xl font-black text-lg shadow-lg mt-3 active:scale-95 transition-transform">儲存支出</button>
+                                <div className="h-24 flex-none"></div>
                             </>
                         ) : view === 'history' ? (
                             <div className="h-full overflow-y-auto pb-32 no-scrollbar pt-2">
@@ -160,7 +132,6 @@
                         )}
                     </div>
 
-                    {/* Navigation Bar */}
                     <div className="flex-none bg-white/90 backdrop-blur-xl border-t px-12 pt-3 flex justify-between absolute bottom-0 left-0 right-0 safe-pb shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
                         <TabBtn active={view==='input'} icon="➕" label="記帳" onClick={()=>setView('input')} />
                         <TabBtn active={view==='history'} icon="📜" label="明細" onClick={()=>setView('history')} />
@@ -210,27 +181,43 @@
         }
 
         function StatsView({ records, categories }) {
-            const [range, setRange] = useState('month');
+            const [offset, setOffset] = useState(0); // 0 = 當前月, -1 = 上個月, +1 = 下個月
+            
+            const currentMonthLabel = useMemo(() => {
+                const d = new Date();
+                d.setMonth(d.getMonth() + offset);
+                return `${d.getFullYear()}年 ${d.getMonth() + 1}月`;
+            }, [offset]);
+
             const stats = useMemo(() => {
                 const now = new Date();
-                const ts = range === 'today' ? new Date(now.setHours(0,0,0,0)).getTime() : range === 'week' ? now.getTime() - (now.getDay()*864e5) : new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-                const filtered = records.filter(r => r.timestamp >= ts);
+                // 計算目標月份的起止時間
+                const startOfMonth = new Date(now.getFullYear(), now.getMonth() + offset, 1).getTime();
+                const endOfMonth = new Date(now.getFullYear(), now.getMonth() + offset + 1, 0, 23, 59, 59).getTime();
+
+                const filtered = records.filter(r => r.timestamp >= startOfMonth && r.timestamp <= endOfMonth);
                 const total = filtered.reduce((s, r) => s + r.amount, 0);
                 const catMap = filtered.reduce((acc, r) => { acc[r.category] = (acc[r.category] || 0) + r.amount; return acc; }, {});
                 return { total, catMap };
-            }, [range, records]);
+            }, [offset, records]);
 
             return (
                 <div className="space-y-4">
-                    <div className="flex bg-white p-1 rounded-xl border">
-                        {['today', 'week', 'month'].map(r => (
-                            <button key={r} onClick={() => setRange(r)} className={`flex-1 py-1.5 text-[10px] font-black rounded-lg ${range === r ? 'bg-gray-900 text-white shadow-md' : 'text-gray-400'}`}>{r.toUpperCase()}</button>
-                        ))}
+                    {/* 月份切換控制器 */}
+                    <div className="flex items-center justify-between bg-white p-2 rounded-xl border shadow-sm">
+                        <button onClick={() => setOffset(offset - 1)} className="w-10 h-10 flex items-center justify-center text-orange-500 font-black text-xl">◀</button>
+                        <div className="flex flex-col items-center">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Statistical Period</span>
+                            <span className="text-sm font-black text-gray-800">{currentMonthLabel}</span>
+                        </div>
+                        <button onClick={() => setOffset(offset + 1)} className="w-10 h-10 flex items-center justify-center text-orange-500 font-black text-xl">▶</button>
                     </div>
-                    <div className="ios-card p-6 bg-gray-900 text-white text-center">
-                        <div className="text-[10px] opacity-40 font-bold tracking-widest uppercase">{range} TOTAL</div>
-                        <div className="text-3xl font-black">$ {stats.total.toLocaleString()}</div>
+
+                    <div className="ios-card p-6 bg-gray-900 text-white text-center shadow-lg">
+                        <div className="text-[10px] opacity-40 font-bold tracking-widest uppercase">Monthly Total</div>
+                        <div className="text-3xl font-black tracking-tighter">$ {stats.total.toLocaleString()}</div>
                     </div>
+
                     <div className="ios-card p-4">
                         {Object.entries(stats.catMap).sort((a,b)=>b[1]-a[1]).map(([name, amt]) => {
                             const pct = stats.total > 0 ? ((amt / stats.total) * 100).toFixed(1) : 0;
@@ -241,12 +228,17 @@
                                         <span>${amt.toLocaleString()} <span className="text-gray-300 font-normal ml-1">{pct}%</span></span>
                                     </div>
                                     <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
-                                        <div className="bg-orange-500 h-full transition-all" style={{width: `${pct}%`}}></div>
+                                        <div className="bg-orange-500 h-full transition-all duration-500" style={{width: `${pct}%`}}></div>
                                     </div>
                                 </div>
                             );
                         })}
+                        {Object.keys(stats.catMap).length === 0 && <div className="text-center py-10 text-gray-300 font-bold">該月份暫無數據</div>}
                     </div>
+                    
+                    {offset !== 0 && (
+                        <button onClick={() => setOffset(0)} className="w-full py-2 text-[10px] font-black text-orange-500 underline uppercase tracking-widest">返回本月</button>
+                    )}
                 </div>
             );
         }
