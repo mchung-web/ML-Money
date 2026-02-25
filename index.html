@@ -17,7 +17,6 @@
         .keypad-btn:active { background: #E5E5EA; }
         .safe-pb { padding-bottom: env(safe-area-inset-bottom); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .active-tab { color: #f97316; border-bottom: 2px solid #f97316; }
     </style>
 </head>
 <body>
@@ -26,12 +25,12 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
-        // 指定 Icon 元件：使用 Flaticon 圖片並加上左上角 $
+        // (3) Header Icon：指定圖片 + 左上角藍色 $ Badge
         const MLGiraffeIcon = () => (
             <div className="relative w-11 h-11">
                 <img src="https://cdn-icons-png.flaticon.com/512/2395/2395826.png" className="w-full h-full object-contain" />
-                <div className="absolute -top-1 -left-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
-                    <span className="text-[10px] text-white font-black">$</span>
+                <div className="absolute -top-1 -left-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white shadow-sm z-10">
+                    <span className="text-[10px] text-white font-black leading-none">$</span>
                 </div>
             </div>
         );
@@ -42,17 +41,20 @@
             const [records, setRecords] = useState(() => JSON.parse(localStorage.getItem('ML_BUDGET_V3_DATA') || '[]'));
             const [selectedCat, setSelectedCat] = useState('餐廳');
             
-            // 預設分類：徹底移除「車」
+            // (1) 初始化時徹底過濾「車」，並確保能載入新增的分類
             const [categories, setCategories] = useState(() => {
                 const saved = JSON.parse(localStorage.getItem('ML_BUDGET_CATS'));
                 const defaultCats = [
                     {n: '餐廳', i: '🍽️'}, {n: '日用品', i: '🧻'}, {n: '超市', i: '🛒'}, 
                     {n: '娛樂', i: '🎮'}, {n: '其他', i: '💰'}
                 ];
-                if (saved) return saved.filter(c => c.n !== '車');
+                if (saved && Array.isArray(saved)) {
+                    return saved.filter(c => c.n !== '車');
+                }
                 return defaultCats;
             });
 
+            // 持久化儲存
             useEffect(() => { localStorage.setItem('ML_BUDGET_V3_DATA', JSON.stringify(records)); }, [records]);
             useEffect(() => { localStorage.setItem('ML_BUDGET_CATS', JSON.stringify(categories)); }, [categories]);
 
@@ -67,15 +69,20 @@
                 };
                 setRecords([newRecord, ...records]);
                 setAmount('0');
-                // 儲存後震動回饋 (如果裝置支援)
-                if (window.navigator.vibrate) window.navigator.vibrate(10);
             };
 
+            // (2) 修復新增功能：現在可以正常加入新分類與 Emoji
             const addCategory = () => {
-                const name = prompt("分類名稱:");
-                if (name && name !== '車') {
-                    const emoji = prompt("Emoji 圖示:", "🏷️");
-                    setCategories([...categories, {n: name, i: emoji || '🏷️'}]);
+                const name = prompt("請輸入新分類名稱 (例如: 買衣服):");
+                if (name) {
+                    if (name === '車') {
+                        alert("不允許添加此分類");
+                        return;
+                    }
+                    const emoji = prompt("請貼上一個 Emoji (例如: 👕):", "🏷️");
+                    const newCats = [...categories, {n: name, i: emoji || '🏷️'}];
+                    setCategories(newCats);
+                    setSelectedCat(name); // 自動選中新分類
                 }
             };
 
@@ -87,12 +94,13 @@
                             <MLGiraffeIcon />
                             <h1 className="text-2xl font-black text-gray-900 tracking-tight">ML Budget</h1>
                         </div>
-                        <div className="px-2 py-0.5 bg-orange-50 text-orange-600 text-[10px] font-bold rounded-full">V3.0 Pro</div>
+                        <div className="px-2 py-0.5 bg-blue-50 text-blue-500 text-[10px] font-bold rounded-full uppercase">V3.1</div>
                     </div>
 
                     <div className="flex-1 flex flex-col px-4 overflow-hidden">
-                        {view === 'input' && (
+                        {view === 'input' ? (
                             <div className="flex flex-col h-full">
+                                {/* 金額 */}
                                 <div className="flex-none ios-card p-4 text-right border border-white mb-2">
                                     <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Expense (HKD)</div>
                                     <div className="text-5xl font-black text-gray-900 tracking-tighter">
@@ -100,20 +108,22 @@
                                     </div>
                                 </div>
 
-                                <div className="flex-none grid grid-cols-4 gap-1.5 mb-1.5">
+                                {/* 分類區 - 移除間距 */}
+                                <div className="flex-none grid grid-cols-4 gap-1.5 mb-1">
                                     {categories.map(cat => (
                                         <button key={cat.n} onClick={() => setSelectedCat(cat.n)}
-                                            className={`py-2 rounded-xl flex flex-col items-center border transition-all ${selectedCat === cat.n ? 'bg-gray-900 text-white border-gray-900 shadow-md' : 'bg-white text-gray-500 border-transparent'}`}>
+                                            className={`py-2.5 rounded-xl flex flex-col items-center border transition-all ${selectedCat === cat.n ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-500 border-transparent'}`}>
                                             <span className="text-xl">{cat.i}</span>
                                             <span className="text-[10px] font-bold truncate px-1">{cat.n}</span>
                                         </button>
                                     ))}
-                                    <button onClick={addCategory} className="py-2 rounded-xl flex flex-col items-center bg-gray-50 text-gray-400 border border-dashed border-gray-300">
+                                    <button onClick={addCategory} className="py-2.5 rounded-xl flex flex-col items-center bg-gray-50 text-gray-400 border border-dashed border-gray-300">
                                         <span className="text-xl">＋</span>
                                         <span className="text-[10px] font-bold">新增</span>
                                     </button>
                                 </div>
 
+                                {/* 數字鍵盤 */}
                                 <div className="flex-1 grid grid-cols-3 gap-0 min-h-0">
                                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, '.', 0].map(n => (
                                         <button key={n} onClick={() => setAmount(prev => prev === '0' && n !== '.' ? String(n) : prev + n)} className="keypad-btn">{n}</button>
@@ -121,18 +131,19 @@
                                     <button onClick={() => setAmount('0')} className="keypad-btn text-red-500 font-bold">C</button>
                                 </div>
 
-                                <button onClick={handleSave} className="flex-none bg-orange-500 text-white h-12 rounded-xl font-black text-lg shadow-lg active:scale-95 transition-all mt-2 mb-[60px]">
+                                <button onClick={handleSave} className="flex-none bg-orange-500 text-white h-12 rounded-xl font-black text-lg shadow-lg active:scale-95 transition-all mt-2 mb-[65px]">
                                     儲存支出
                                 </button>
                             </div>
+                        ) : (
+                            <div className="h-full overflow-y-auto pb-24 no-scrollbar">
+                                {view === 'history' ? <HistoryView records={records} categories={categories} /> : <MultiStatsView records={records} categories={categories} />}
+                            </div>
                         )}
-
-                        {view === 'history' && <div className="h-full overflow-y-auto pb-24 no-scrollbar"><HistoryView records={records} categories={categories} /></div>}
-                        {view === 'stats' && <div className="h-full overflow-y-auto pb-24 no-scrollbar"><MultiStatsView records={records} categories={categories} /></div>}
                     </div>
 
                     {/* Tab Bar */}
-                    <div className="flex-none bg-white/95 backdrop-blur-md border-t border-gray-100 px-12 py-1 flex justify-between absolute bottom-0 left-0 right-0 safe-pb">
+                    <div className="flex-none bg-white/95 backdrop-blur-md border-t border-gray-100 px-12 py-1.5 flex justify-between absolute bottom-0 left-0 right-0 safe-pb">
                         <TabIcon active={view === 'input'} icon="➕" label="記帳" onClick={() => setView('input')} />
                         <TabIcon active={view === 'history'} icon="📜" label="明細" onClick={() => setView('history')} />
                         <TabIcon active={view === 'stats'} icon="📊" label="統計" onClick={() => setView('stats')} />
@@ -141,94 +152,85 @@
             );
         }
 
-        // --- 多維度統計頁面 ---
+        // (2) 多維度統計頁面功能
         function MultiStatsView({ records, categories }) {
             const [range, setRange] = useState('month'); // today, week, month, year
 
-            const filteredData = useMemo(() => {
+            const stats = useMemo(() => {
                 const now = new Date();
                 const startOfDay = new Date(now.setHours(0,0,0,0)).getTime();
                 const startOfWeek = now.getTime() - (now.getDay() * 24 * 60 * 60 * 1000);
                 const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
                 const startOfYear = new Date(now.getFullYear(), 0, 1).getTime();
 
-                let data = [];
-                if (range === 'today') data = records.filter(r => r.timestamp >= startOfDay);
-                else if (range === 'week') data = records.filter(r => r.timestamp >= startOfWeek);
-                else if (range === 'month') data = records.filter(r => r.timestamp >= startOfMonth);
-                else data = records.filter(r => r.timestamp >= startOfYear);
+                let filtered = [];
+                if (range === 'today') filtered = records.filter(r => r.timestamp >= startOfDay);
+                else if (range === 'week') filtered = records.filter(r => r.timestamp >= startOfWeek);
+                else if (range === 'month') filtered = records.filter(r => r.timestamp >= startOfMonth);
+                else filtered = records.filter(r => r.timestamp >= startOfYear);
 
-                const total = data.reduce((s, r) => s + r.amount, 0);
-                const catMap = data.reduce((acc, r) => {
+                const total = filtered.reduce((s, r) => s + r.amount, 0);
+                const catMap = filtered.reduce((acc, r) => {
                     acc[r.category] = (acc[r.category] || 0) + r.amount;
                     return acc;
                 }, {});
 
-                return { total, catMap, count: data.length };
+                return { total, catMap, count: filtered.length };
             }, [range, records]);
 
-            // 年度回顧分組
-            const monthlyGroups = useMemo(() => {
+            const archives = useMemo(() => {
                 const groups = {};
                 records.forEach(r => {
-                    const date = new Date(r.timestamp);
-                    const key = `${date.getFullYear()}/${date.getMonth() + 1}`;
+                    const d = new Date(r.timestamp);
+                    const key = `${d.getFullYear()}年 ${d.getMonth() + 1}月`;
                     groups[key] = (groups[key] || 0) + r.amount;
                 });
                 return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
             }, [records]);
 
             return (
-                <div className="pt-2 space-y-4">
-                    {/* 維度切換 */}
-                    <div className="flex justify-between bg-white rounded-xl p-1 shadow-sm">
-                        {['today', 'week', 'month', 'year'].map(t => (
-                            <button key={t} onClick={() => setRange(t)} 
-                                className={`flex-1 py-2 text-[11px] font-black rounded-lg transition-all ${range === t ? 'bg-gray-900 text-white shadow-md' : 'text-gray-400'}`}>
-                                {t === 'today' ? '今日' : t === 'week' ? '本週' : t === 'month' ? '本月' : '年度'}
+                <div className="space-y-4 pt-2">
+                    <div className="flex bg-white p-1 rounded-xl shadow-sm">
+                        {['today', 'week', 'month', 'year'].map(r => (
+                            <button key={r} onClick={() => setRange(r)} className={`flex-1 py-2 text-[11px] font-black rounded-lg transition-all ${range === r ? 'bg-gray-900 text-white shadow-md' : 'text-gray-400'}`}>
+                                {r==='today'?'今日':r==='week'?'本週':r==='month'?'本月':'年度'}
                             </button>
                         ))}
                     </div>
 
-                    {/* 總額卡片 */}
-                    <div className="ios-card p-6 bg-gradient-to-br from-gray-900 to-gray-800 text-white text-center">
-                        <div className="text-[10px] opacity-50 tracking-widest uppercase mb-1">Total Spending</div>
-                        <div className="text-4xl font-black">$ {filteredData.total.toLocaleString()}</div>
-                        <div className="text-[10px] mt-2 opacity-40">{filteredData.count} 筆記錄</div>
+                    <div className="ios-card p-6 bg-gray-900 text-white text-center">
+                        <div className="text-[10px] opacity-40 mb-1 tracking-widest uppercase">{range} Spending</div>
+                        <div className="text-4xl font-black">$ {stats.total.toLocaleString()}</div>
                     </div>
 
-                    {/* 分類佔比列表 */}
                     <div className="ios-card p-4">
-                        <h3 className="text-xs font-black mb-4 text-gray-400 uppercase tracking-tight">Category Breakdown</h3>
-                        {Object.entries(filteredData.catMap).length > 0 ? Object.entries(filteredData.catMap).sort((a,b) => b[1]-a[1]).map(([name, amt]) => {
-                            const percent = ((amt / filteredData.total) * 100).toFixed(1);
-                            const emoji = categories.find(c => c.n === name)?.i || '💰';
+                        <h3 className="text-[10px] font-black text-gray-400 uppercase mb-4 tracking-widest">Category Breakdown</h3>
+                        {Object.entries(stats.catMap).sort((a,b)=>b[1]-a[1]).map(([name, amt]) => {
+                            const pct = stats.total > 0 ? ((amt / stats.total) * 100).toFixed(1) : 0;
+                            const icon = categories.find(c => c.n === name)?.i || '💰';
                             return (
                                 <div key={name} className="mb-4 last:mb-0">
-                                    <div className="flex justify-between items-end mb-1">
-                                        <span className="text-sm font-bold text-gray-700">{emoji} {name}</span>
-                                        <span className="text-xs font-black text-gray-900">${amt.toLocaleString()} <span className="text-gray-300 ml-1">{percent}%</span></span>
+                                    <div className="flex justify-between items-end mb-1 text-sm font-bold">
+                                        <span className="text-gray-700">{icon} {name}</span>
+                                        <span className="text-gray-900">${amt.toLocaleString()} <span className="text-gray-300 ml-1">{pct}%</span></span>
                                     </div>
                                     <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
-                                        <div className="bg-orange-500 h-full transition-all duration-500" style={{ width: `${percent}%` }}></div>
+                                        <div className="bg-orange-500 h-full transition-all duration-500" style={{width: `${pct}%`}}></div>
                                     </div>
                                 </div>
                             );
-                        }) : <div className="text-center py-4 text-gray-300 text-xs font-bold">此區間暫無數據</div>}
+                        })}
                     </div>
 
-                    {/* 年度自動歸檔 (僅在年度 View 顯示) */}
                     {range === 'year' && (
                         <div className="ios-card p-4">
-                            <h3 className="text-xs font-black mb-3 text-gray-400 uppercase tracking-tight">Monthly Archive</h3>
-                            <div className="space-y-2">
-                                {monthlyGroups.map(([month, total]) => (
-                                    <div key={month} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
-                                        <span className="text-sm font-bold text-gray-600">{month}</span>
-                                        <span className="text-sm font-black text-gray-900">$ {total.toLocaleString()}</span>
-                                    </div>
-                                ))}
-                            </div>
+                            <h3 className="text-[10px] font-black text-gray-400 uppercase mb-3 tracking-widest">Monthly Archives</h3>
+                            {archives.map(([month, total]) => (
+                                <div key={month} className="flex justify-between py-2 border-b border-gray-50 last:border-0 text-sm">
+                                    <span className="font-bold text-gray-600">{month}</span>
+                                    <span className="font-black text-gray-900">$ {total.toLocaleString()}</span>
+                                </div>
+                            ))}
                         </div>
                     )}
                 </div>
@@ -246,13 +248,13 @@
                     </div>
                     <div className="font-black text-red-500">-$ {r.amount}</div>
                 </div>
-            )) : <div className="text-center py-20 text-gray-300 font-bold">尚無支出記錄</div>;
+            )) : <div className="text-center py-20 text-gray-300 font-bold">尚無記錄</div>;
         }
 
         const TabIcon = ({ active, icon, label, onClick }) => (
             <button onClick={onClick} className={`flex flex-col items-center ${active ? 'text-orange-500' : 'text-gray-300'}`}>
                 <span className="text-xl leading-none">{icon}</span>
-                <span className="text-[8px] font-bold mt-1">{label}</span>
+                <span className="text-[9px] font-bold mt-1">{label}</span>
             </button>
         );
 
