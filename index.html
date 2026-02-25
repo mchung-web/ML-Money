@@ -31,7 +31,6 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef } = React;
 
-        // 生成卡通長頸鹿 Icon (全身、黑邊、黃色)
         const generateIcon = () => {
             const canvas = document.createElement('canvas');
             canvas.width = 180; canvas.height = 180;
@@ -39,11 +38,10 @@
             ctx.fillStyle = 'white';
             ctx.beginPath(); ctx.roundRect(0, 0, 180, 180, 40); ctx.fill();
             
-            // 繪製卡通長頸鹿 (SVG Path 模擬)
             const img = new Image();
+            img.crossOrigin = "anonymous";
             img.onload = () => {
                 ctx.drawImage(img, 30, 35, 120, 120);
-                // 藍色徽章在左上角
                 ctx.fillStyle = '#007aff';
                 ctx.beginPath(); ctx.arc(35, 35, 26, 0, Math.PI * 2); ctx.fill();
                 ctx.strokeStyle = 'white'; ctx.lineWidth = 4; ctx.stroke();
@@ -51,7 +49,6 @@
                 ctx.fillText('$', 35, 37);
                 document.getElementById('dynamic-icon').href = canvas.toDataURL('image/png');
             };
-            // 使用黑色描邊長頸鹿素材
             img.src = "https://cdn-icons-png.flaticon.com/512/2395/2395826.png"; 
         };
         generateIcon();
@@ -63,8 +60,11 @@
             const [selectedCat, setSelectedCat] = useState('餐廳');
             const [categories, setCategories] = useState(() => {
                 const saved = JSON.parse(localStorage.getItem('ML_BUDGET_CATS'));
-                const defaults = [{n:'餐廳',i:'🍽️'},{n:'日用品',i:'🧻'},{n:'超市',i:'🛒'},{n:'娛樂',i:'🎮'},{n:'其他',i:'💰'}];
-                return (saved && Array.isArray(saved)) ? saved.filter(c => c.n !== '車') : defaults;
+                const defaults = [
+                    {n:'餐廳',i:'🍽️'},{n:'日用品',i:'🧻'},{n:'超市',i:'🛒'},
+                    {n:'娛樂',i:'🎮'},{n:'食飯',i:'🏷️'},{n:'其他',i:'💰'}
+                ];
+                return (saved && Array.isArray(saved)) ? saved : defaults;
             });
 
             useEffect(() => { localStorage.setItem('ML_BUDGET_V3_DATA', JSON.stringify(records)); }, [records]);
@@ -78,7 +78,6 @@
 
             return (
                 <div className="flex flex-col h-full max-w-md mx-auto relative bg-[#F2F2F7]">
-                    {/* Header - 緊湊版 */}
                     <div className="flex-none pt-10 px-5 pb-2 flex justify-between items-center">
                         <div className="flex items-center gap-3">
                             <div className="relative w-10 h-10">
@@ -89,7 +88,7 @@
                             </div>
                             <h1 className="text-xl font-black text-gray-900 tracking-tight">ML Budget</h1>
                         </div>
-                        <div className="px-2 py-0.5 bg-orange-100 text-orange-600 text-[10px] font-black rounded">V3.8</div>
+                        <div className="px-2 py-0.5 bg-orange-100 text-orange-600 text-[10px] font-black rounded">V3.9</div>
                     </div>
 
                     <div className="flex-1 px-4 overflow-hidden flex flex-col">
@@ -106,7 +105,10 @@
                                         </button>
                                     ))}
                                     <button onClick={() => {
-                                        const n = prompt("名稱:"); if(n) setCategories([...categories, {n, i:'🏷️'}]);
+                                        const n = prompt("名稱:"); if(n) {
+                                            const e = prompt("Emoji:", "🏷️");
+                                            setCategories([...categories, {n, i: e || '🏷️'}]);
+                                        }
                                     }} className="py-2 rounded-xl flex flex-col items-center bg-gray-50 text-gray-400 border border-dashed border-gray-300">
                                         <span className="text-lg">＋</span><span className="text-[9px] font-bold">新增</span>
                                     </button>
@@ -117,9 +119,8 @@
                                     ))}
                                     <button onClick={() => setAmount('0')} className="keypad-btn text-red-500 font-bold">C</button>
                                 </div>
-                                {/* 關鍵修正：上移並縮小儲存按鈕，釋放底部空間 */}
                                 <button onClick={handleSave} className="flex-none bg-orange-500 text-white h-12 rounded-xl font-black text-lg shadow-md mt-2 mb-2 active:scale-95">儲存支出</button>
-                                <div className="h-[60px] flex-none"></div> {/* 預留底部空間 */}
+                                <div className="h-[60px] flex-none"></div>
                             </>
                         ) : view === 'history' ? (
                             <div className="h-full overflow-y-auto pb-24 no-scrollbar pt-2">
@@ -134,7 +135,6 @@
                         )}
                     </div>
 
-                    {/* Tab Bar - 扁平化與比例修正 */}
                     <div className="flex-none bg-white/95 backdrop-blur-md border-t px-12 py-2 flex justify-between absolute bottom-0 left-0 right-0 safe-pb shadow-[0_-2px_10px_rgba(0,0,0,0.03)]">
                         <TabBtn active={view==='input'} icon="➕" label="記帳" onClick={()=>setView('input')} />
                         <TabBtn active={view==='history'} icon="📜" label="明細" onClick={()=>setView('history')} />
