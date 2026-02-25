@@ -3,17 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ML Budget - 記帳長頸鹿</title>
+    <title>ML Budget</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
     <style>
-        body { background-color: #F2F2F7; font-family: -apple-system, sans-serif; overflow: hidden; position: fixed; width: 100%; height: 100%; }
-        .ios-card { background: white; border-radius: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-        .keypad-btn { background: white; border-radius: 12px; font-size: 20px; font-weight: 600; height: 44px; display: flex; align-items: center; justify-content: center; border: 1px solid #E5E5EA; transition: 0.1s; }
+        /* 使用 dvh 確保在手機瀏覽器上完美貼合，不產生捲軸 */
+        :root { --ios-bg: #F2F2F7; }
+        body { background-color: var(--ios-bg); font-family: -apple-system, sans-serif; overflow: hidden; height: 100dvh; }
+        #root { height: 100dvh; }
+        .ios-card { background: white; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .keypad-btn { background: white; border-radius: 12px; font-size: 22px; font-weight: 600; flex: 1; height: 100%; display: flex; align-items: center; justify-content: center; border: 1px solid #E5E5EA; transition: 0.1s; }
         .keypad-btn:active { background: #E5E5EA; transform: scale(0.95); }
-        .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+        .safe-pb { padding-bottom: env(safe-area-inset-bottom); }
     </style>
 </head>
 <body>
@@ -22,65 +25,70 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // 直接嵌入圖示 (Base64) 確保 100% 顯示
-        const GIRAFFE_ICON = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjI1IiBmaWxsPSIjRkZGRkZGIi8+PGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNDAiIGZpbGw9IiNGRkVCODkiLz48dGV4dCB4PSI1MCUiIHk9IjU1JSIgZm9udC1zaXplPSI1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPj🦒PC90ZXh0PjxjaXJjbGUgY3g9Ijc1IiBjeT0iMjUiIHI9IjE1IiBmaWxsPSIjRkZGRkZGIiBzdHJva2U9IiNFRUU1RUEiLz48dGV4dCB4PSI3NSUiIHk9IjMwJSIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzAwN0FGRiIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPiQ8L3RleHQ+PC9zdmc+";
+        // 直接用內嵌 SVG 代碼，解決 Icon 顯示不出的問題
+        const GiraffeIcon = () => (
+            <svg width="40" height="40" viewBox="0 0 100 100" className="drop-shadow-sm">
+                <rect width="100" height="100" rx="22" fill="#fff"/>
+                <circle cx="50" cy="50" r="38" fill="#FFE082"/>
+                <text x="50" y="58" fontSize="45" textAnchor="middle">🦒</text>
+                <circle cx="78" cy="22" r="16" fill="#007AFF"/>
+                <text x="78" y="28" fontSize="18" fill="white" fontWeight="bold" textAnchor="middle">$</text>
+            </svg>
+        );
 
         function App() {
             const [view, setView] = useState('input'); 
             const [amount, setAmount] = useState('0');
             const [records, setRecords] = useState(() => JSON.parse(localStorage.getItem('ML_BUDGET_V2_DATA') || '[]'));
             const [selectedCat, setSelectedCat] = useState('餐廳');
-            const [categories, setCategories] = useState(() => {
-                const saved = JSON.parse(localStorage.getItem('ML_BUDGET_CATS'));
-                return saved || [
-                    {n: '餐廳', i: '🍽️'}, {n: '日用品', i: '🧻'}, {n: '超市', i: '🛒'}, 
-                    {n: '車', i: '🚗'}, {n: '娛樂', i: '🎮'}, {n: '其他', i: '💰'}
-                ];
-            });
+            const [categories, setCategories] = useState(() => JSON.parse(localStorage.getItem('ML_BUDGET_CATS')) || [
+                {n: '餐廳', i: '🍽️'}, {n: '日用品', i: '🧻'}, {n: '超市', i: '🛒'}, 
+                {n: '車', i: '🚗'}, {n: '娛樂', i: '🎮'}, {n: '其他', i: '💰'}
+            ]);
 
             useEffect(() => { localStorage.setItem('ML_BUDGET_V2_DATA', JSON.stringify(records)); }, [records]);
             useEffect(() => { localStorage.setItem('ML_BUDGET_CATS', JSON.stringify(categories)); }, [categories]);
 
             const handleSave = () => {
                 if (amount === '0') return;
-                setRecords([{ id: Date.now(), amount: parseFloat(amount), category: selectedCat, dateStr: new Date().toISOString().split('T')[0], timestamp: Date.now() }, ...records]);
+                setRecords([{ id: Date.now(), amount: parseFloat(amount), category: selectedCat, dateStr: new Date().toLocaleDateString(), timestamp: Date.now() }, ...records]);
                 setAmount('0');
             };
 
             const addCategory = () => {
-                const name = prompt("新增分類名稱:");
+                const name = prompt("輸入分類名稱:");
                 if (name) setCategories([...categories, {n: name, i: '🏷️'}]);
             };
 
             return (
-                <div className="max-w-md mx-auto h-screen flex flex-col bg-[#F2F2F7] safe-bottom">
-                    {/* Header - 極度簡化高度 */}
-                    <div className="pt-8 px-5 pb-2 flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                            <img src={GIRAFFE_ICON} className="w-10 h-10 rounded-lg shadow-sm" />
-                            <h1 className="text-xl font-black text-gray-900">ML Budget</h1>
+                <div className="flex flex-col h-full max-w-md mx-auto relative overflow-hidden">
+                    {/* Header - 緊湊高度 */}
+                    <div className="flex-none pt-8 px-5 pb-2 flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                            <GiraffeIcon />
+                            <h1 className="text-xl font-black text-gray-900 tracking-tight">ML Budget</h1>
                         </div>
-                        <div className="text-[10px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full">V2.3</div>
+                        <div className="px-2 py-0.5 bg-blue-50 text-blue-500 text-[10px] font-bold rounded-full border border-blue-100">V2.4 FIT</div>
                     </div>
 
-                    <div className="flex-1 px-4 flex flex-col overflow-hidden">
+                    <div className="flex-1 flex flex-col px-4 overflow-hidden">
                         {view === 'input' ? (
-                            <div className="flex flex-col h-full justify-between pb-20">
-                                {/* 金額顯示區 */}
-                                <div className="ios-card p-4 text-right border border-white">
-                                    <div className="text-[9px] font-bold text-gray-400 uppercase mb-1">Expense (HKD)</div>
-                                    <div className="text-4xl font-black text-gray-900 truncate tracking-tighter">
-                                        <span className="text-xl mr-1 text-orange-400">$</span>{amount}
+                            <div className="flex flex-col h-full">
+                                {/* 金額區 */}
+                                <div className="flex-none ios-card p-4 text-right border border-white mb-2">
+                                    <div className="text-[10px] font-bold text-gray-400 uppercase">Expense (HKD)</div>
+                                    <div className="text-5xl font-black text-gray-900 truncate tracking-tighter">
+                                        <span className="text-2xl mr-1 text-orange-400">$</span>{amount}
                                     </div>
                                 </div>
 
-                                {/* 分類區 - 調整尺寸以一頁顯示 */}
-                                <div className="grid grid-cols-4 gap-1.5 py-1">
+                                {/* 分類區 - 緊貼金額區 */}
+                                <div className="flex-none grid grid-cols-4 gap-1.5 mb-2">
                                     {categories.map(cat => (
                                         <button key={cat.n} onClick={() => setSelectedCat(cat.n)}
-                                            className={`py-2 rounded-xl flex flex-col items-center border transition-all ${selectedCat === cat.n ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-500 border-transparent'}`}>
+                                            className={`py-2 rounded-xl flex flex-col items-center border transition-all ${selectedCat === cat.n ? 'bg-gray-900 text-white border-gray-900 shadow-md' : 'bg-white text-gray-500 border-transparent'}`}>
                                             <span className="text-lg">{cat.i}</span>
-                                            <span className="text-[10px] font-bold truncate w-full text-center">{cat.n}</span>
+                                            <span className="text-[10px] font-bold truncate px-1">{cat.n}</span>
                                         </button>
                                     ))}
                                     <button onClick={addCategory} className="py-2 rounded-xl flex flex-col items-center bg-gray-50 text-gray-400 border border-dashed border-gray-300">
@@ -89,24 +97,28 @@
                                     </button>
                                 </div>
 
-                                {/* 鍵盤區 - 緊湊排列 */}
-                                <div className="grid grid-cols-3 gap-1.5 mt-auto">
+                                {/* 數字鍵盤 - 自動填滿剩餘空間 */}
+                                <div className="flex-1 grid grid-cols-3 gap-1.5 mb-2 overflow-hidden">
                                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, '.', 0].map(n => (
-                                        <button key={n} onClick={() => setAmount(prev => prev === '0' ? String(n) : prev + n)} className="keypad-btn shadow-sm">{n}</button>
+                                        <button key={n} onClick={() => setAmount(prev => prev === '0' && n !== '.' ? String(n) : prev + n)} className="keypad-btn">{n}</button>
                                     ))}
                                     <button onClick={() => setAmount('0')} className="keypad-btn text-red-500 font-bold">C</button>
-                                    <button onClick={handleSave} className="col-span-3 bg-orange-500 text-white h-12 rounded-2xl font-black text-lg shadow-lg active:scale-95 transition-all mt-1">儲存記錄</button>
                                 </div>
+
+                                {/* 儲存按鈕 - 緊貼鍵盤 */}
+                                <button onClick={handleSave} className="flex-none bg-orange-500 text-white h-14 rounded-2xl font-black text-lg shadow-lg active:scale-95 transition-all mb-[70px]">
+                                    儲存支出記錄
+                                </button>
                             </div>
                         ) : (
-                            <div className="h-full overflow-y-auto pb-24 pt-2">
+                            <div className="h-full overflow-y-auto pb-24 pt-2 no-scrollbar">
                                 {view === 'history' ? <HistoryView records={records} /> : <StatsView records={records} />}
                             </div>
                         )}
                     </div>
 
-                    {/* Tab Bar */}
-                    <div className="bg-white/90 backdrop-blur-md border-t border-gray-100 px-10 py-3 flex justify-between fixed bottom-0 left-0 right-0 max-w-md mx-auto z-50 safe-bottom">
+                    {/* Tab Bar - 固定底部 */}
+                    <div className="flex-none bg-white/95 backdrop-blur-md border-t border-gray-100 px-10 py-3 flex justify-between absolute bottom-0 left-0 right-0 safe-pb">
                         <TabIcon active={view === 'input'} icon="➕" label="記帳" onClick={() => setView('input')} />
                         <TabIcon active={view === 'history'} icon="📜" label="明細" onClick={() => setView('history')} />
                         <TabIcon active={view === 'stats'} icon="📊" label="統計" onClick={() => setView('stats')} />
@@ -116,7 +128,7 @@
         }
 
         function HistoryView({ records }) {
-            return records.map(r => (
+            return records.length ? records.map(r => (
                 <div key={r.id} className="ios-card p-4 flex justify-between items-center mb-2">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-xl">🏷️</div>
@@ -124,16 +136,16 @@
                     </div>
                     <div className="font-black text-red-500">-$ {r.amount}</div>
                 </div>
-            ));
+            )) : <div className="text-center py-20 text-gray-300">目前沒有資料</div>;
         }
 
         function StatsView({ records }) {
             const total = records.reduce((s, r) => s + r.amount, 0);
             return (
                 <div className="space-y-4">
-                    <div className="ios-card p-5 bg-gray-900 text-white text-center">
-                        <div className="text-[10px] opacity-50 mb-1">TOTAL EXPENSES</div>
-                        <div className="text-3xl font-black">$ {total.toLocaleString()}</div>
+                    <div className="ios-card p-6 bg-gray-900 text-white text-center">
+                        <div className="text-[10px] opacity-50 mb-1 tracking-widest">TOTAL BALANCE</div>
+                        <div className="text-4xl font-black">$ {total.toLocaleString()}</div>
                     </div>
                 </div>
             );
@@ -141,8 +153,8 @@
 
         const TabIcon = ({ active, icon, label, onClick }) => (
             <button onClick={onClick} className={`flex flex-col items-center gap-0.5 ${active ? 'text-orange-500' : 'text-gray-300'}`}>
-                <span className="text-xl">{icon}</span>
-                <span className="text-[9px] font-bold">{label}</span>
+                <span className="text-2xl">{icon}</span>
+                <span className="text-[10px] font-bold">{label}</span>
             </button>
         );
 
