@@ -9,14 +9,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
     <style>
-        /* 使用 dvh 確保在手機瀏覽器上完美貼合，不產生捲軸 */
-        :root { --ios-bg: #F2F2F7; }
-        body { background-color: var(--ios-bg); font-family: -apple-system, sans-serif; overflow: hidden; height: 100dvh; }
+        body { background-color: #F2F2F7; font-family: -apple-system, sans-serif; overflow: hidden; height: 100dvh; }
         #root { height: 100dvh; }
-        .ios-card { background: white; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-        .keypad-btn { background: white; border-radius: 12px; font-size: 22px; font-weight: 600; flex: 1; height: 100%; display: flex; align-items: center; justify-content: center; border: 1px solid #E5E5EA; transition: 0.1s; }
-        .keypad-btn:active { background: #E5E5EA; transform: scale(0.95); }
+        .ios-card { background: white; border-radius: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); }
+        .keypad-btn { background: white; border-radius: 12px; font-size: 22px; font-weight: 600; flex: 1; display: flex; align-items: center; justify-content: center; border: 1px solid #E5E5EA; }
+        .keypad-btn:active { background: #E5E5EA; }
         .safe-pb { padding-bottom: env(safe-area-inset-bottom); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body>
@@ -25,14 +24,20 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // 直接用內嵌 SVG 代碼，解決 Icon 顯示不出的問題
-        const GiraffeIcon = () => (
-            <svg width="40" height="40" viewBox="0 0 100 100" className="drop-shadow-sm">
-                <rect width="100" height="100" rx="22" fill="#fff"/>
-                <circle cx="50" cy="50" r="38" fill="#FFE082"/>
-                <text x="50" y="58" fontSize="45" textAnchor="middle">🦒</text>
-                <circle cx="78" cy="22" r="16" fill="#007AFF"/>
-                <text x="78" y="28" fontSize="18" fill="white" fontWeight="bold" textAnchor="middle">$</text>
+        // (b) 修正 Icon：ML Travel 風格長頸鹿 + $ 標誌
+        const MLGiraffeMoneyIcon = () => (
+            <svg width="42" height="42" viewBox="0 0 100 100">
+                <rect width="100" height="100" rx="22" fill="#FFFBE6"/>
+                {/* 長頸鹿圖案 (ML Travel 風格) */}
+                <path d="M35 85 C35 60 40 40 45 25 C47 15 55 15 58 25 C62 40 60 70 60 85" fill="#F9A825" stroke="#BF360C" strokeWidth="1"/>
+                <circle cx="48" cy="28" r="1.5" fill="#333"/> {/* 眼睛 */}
+                <path d="M52 22 L56 15 M46 22 L42 15" stroke="#BF360C" strokeWidth="2"/> {/* 角 */}
+                <circle cx="43" cy="45" r="4" fill="#E65100" opacity="0.6"/>
+                <circle cx="55" cy="55" r="5" fill="#E65100" opacity="0.6"/>
+                <circle cx="48" cy="70" r="4" fill="#E65100" opacity="0.6"/>
+                {/* 右上角藍色 $ 標誌 */}
+                <circle cx="80" cy="20" r="16" fill="#007AFF"/>
+                <text x="80" y="26" fontSize="18" fill="white" fontWeight="900" textAnchor="middle">$</text>
             </svg>
         );
 
@@ -41,9 +46,11 @@
             const [amount, setAmount] = useState('0');
             const [records, setRecords] = useState(() => JSON.parse(localStorage.getItem('ML_BUDGET_V2_DATA') || '[]'));
             const [selectedCat, setSelectedCat] = useState('餐廳');
+            
+            // (c) 分類調整：移除了車，保留基礎分類
             const [categories, setCategories] = useState(() => JSON.parse(localStorage.getItem('ML_BUDGET_CATS')) || [
                 {n: '餐廳', i: '🍽️'}, {n: '日用品', i: '🧻'}, {n: '超市', i: '🛒'}, 
-                {n: '車', i: '🚗'}, {n: '娛樂', i: '🎮'}, {n: '其他', i: '💰'}
+                {n: '娛樂', i: '🎮'}, {n: '其他', i: '💰'}
             ]);
 
             useEffect(() => { localStorage.setItem('ML_BUDGET_V2_DATA', JSON.stringify(records)); }, [records]);
@@ -55,20 +62,24 @@
                 setAmount('0');
             };
 
+            // (c) 新增頁面可選 Emoji
             const addCategory = () => {
-                const name = prompt("輸入分類名稱:");
-                if (name) setCategories([...categories, {n: name, i: '🏷️'}]);
+                const name = prompt("請輸入新分類名稱 (例如: 買衣服):");
+                if (name) {
+                    const emoji = prompt("請輸入一個代表此分類的 Emoji (例如: 👕):", "🏷️");
+                    setCategories([...categories, {n: name, i: emoji || '🏷️'}]);
+                }
             };
 
             return (
                 <div className="flex flex-col h-full max-w-md mx-auto relative overflow-hidden">
-                    {/* Header - 緊湊高度 */}
-                    <div className="flex-none pt-8 px-5 pb-2 flex justify-between items-center">
+                    {/* Header */}
+                    <div className="flex-none pt-8 px-5 pb-2 flex justify-between items-end">
                         <div className="flex items-center gap-3">
-                            <GiraffeIcon />
-                            <h1 className="text-xl font-black text-gray-900 tracking-tight">ML Budget</h1>
+                            <MLGiraffeMoneyIcon />
+                            <h1 className="text-2xl font-black text-gray-900 tracking-tight">ML Budget</h1>
                         </div>
-                        <div className="px-2 py-0.5 bg-blue-50 text-blue-500 text-[10px] font-bold rounded-full border border-blue-100">V2.4 FIT</div>
+                        <div className="px-2 py-0.5 bg-orange-50 text-orange-600 text-[10px] font-bold rounded-full">V2.5</div>
                     </div>
 
                     <div className="flex-1 flex flex-col px-4 overflow-hidden">
@@ -76,49 +87,49 @@
                             <div className="flex flex-col h-full">
                                 {/* 金額區 */}
                                 <div className="flex-none ios-card p-4 text-right border border-white mb-2">
-                                    <div className="text-[10px] font-bold text-gray-400 uppercase">Expense (HKD)</div>
-                                    <div className="text-5xl font-black text-gray-900 truncate tracking-tighter">
+                                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Expense (HKD)</div>
+                                    <div className="text-5xl font-black text-gray-900 tracking-tighter">
                                         <span className="text-2xl mr-1 text-orange-400">$</span>{amount}
                                     </div>
                                 </div>
 
-                                {/* 分類區 - 緊貼金額區 */}
-                                <div className="flex-none grid grid-cols-4 gap-1.5 mb-2">
+                                {/* 分類區 - 緊湊無間距 */}
+                                <div className="flex-none grid grid-cols-4 gap-1.5 mb-1.5">
                                     {categories.map(cat => (
                                         <button key={cat.n} onClick={() => setSelectedCat(cat.n)}
-                                            className={`py-2 rounded-xl flex flex-col items-center border transition-all ${selectedCat === cat.n ? 'bg-gray-900 text-white border-gray-900 shadow-md' : 'bg-white text-gray-500 border-transparent'}`}>
-                                            <span className="text-lg">{cat.i}</span>
+                                            className={`py-2.5 rounded-xl flex flex-col items-center border transition-all ${selectedCat === cat.n ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-500 border-transparent'}`}>
+                                            <span className="text-xl">{cat.i}</span>
                                             <span className="text-[10px] font-bold truncate px-1">{cat.n}</span>
                                         </button>
                                     ))}
-                                    <button onClick={addCategory} className="py-2 rounded-xl flex flex-col items-center bg-gray-50 text-gray-400 border border-dashed border-gray-300">
-                                        <span className="text-lg">＋</span>
+                                    <button onClick={addCategory} className="py-2.5 rounded-xl flex flex-col items-center bg-gray-50 text-gray-400 border border-dashed border-gray-300">
+                                        <span className="text-xl">＋</span>
                                         <span className="text-[10px] font-bold">新增</span>
                                     </button>
                                 </div>
 
-                                {/* 數字鍵盤 - 自動填滿剩餘空間 */}
-                                <div className="flex-1 grid grid-cols-3 gap-1.5 mb-2 overflow-hidden">
+                                {/* 鍵盤區 - 撐滿中間空間 */}
+                                <div className="flex-1 grid grid-cols-3 gap-1.5 mb-2 min-h-0">
                                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, '.', 0].map(n => (
-                                        <button key={n} onClick={() => setAmount(prev => prev === '0' && n !== '.' ? String(n) : prev + n)} className="keypad-btn">{n}</button>
+                                        <button key={n} onClick={() => setAmount(prev => prev === '0' && n !== '.' ? String(n) : prev + n)} className="keypad-btn shadow-sm">{n}</button>
                                     ))}
                                     <button onClick={() => setAmount('0')} className="keypad-btn text-red-500 font-bold">C</button>
                                 </div>
 
-                                {/* 儲存按鈕 - 緊貼鍵盤 */}
-                                <button onClick={handleSave} className="flex-none bg-orange-500 text-white h-14 rounded-2xl font-black text-lg shadow-lg active:scale-95 transition-all mb-[70px]">
+                                {/* 儲存按鈕 - 根據截圖高度優化 */}
+                                <button onClick={handleSave} className="flex-none bg-orange-500 text-white h-14 rounded-2xl font-black text-lg shadow-lg active:scale-95 transition-all mb-[55px]">
                                     儲存支出記錄
                                 </button>
                             </div>
                         ) : (
                             <div className="h-full overflow-y-auto pb-24 pt-2 no-scrollbar">
-                                {view === 'history' ? <HistoryView records={records} /> : <StatsView records={records} />}
+                                {view === 'history' ? <HistoryView records={records} categories={categories} /> : <StatsView records={records} />}
                             </div>
                         )}
                     </div>
 
-                    {/* Tab Bar - 固定底部 */}
-                    <div className="flex-none bg-white/95 backdrop-blur-md border-t border-gray-100 px-10 py-3 flex justify-between absolute bottom-0 left-0 right-0 safe-pb">
+                    {/* (a) 修正 Tab Bar 高度：比例降低，精簡設計 */}
+                    <div className="flex-none bg-white/95 backdrop-blur-md border-t border-gray-100 px-12 py-2 flex justify-between absolute bottom-0 left-0 right-0 safe-pb">
                         <TabIcon active={view === 'input'} icon="➕" label="記帳" onClick={() => setView('input')} />
                         <TabIcon active={view === 'history'} icon="📜" label="明細" onClick={() => setView('history')} />
                         <TabIcon active={view === 'stats'} icon="📊" label="統計" onClick={() => setView('stats')} />
@@ -127,11 +138,13 @@
             );
         }
 
-        function HistoryView({ records }) {
+        function HistoryView({ records, categories }) {
             return records.length ? records.map(r => (
                 <div key={r.id} className="ios-card p-4 flex justify-between items-center mb-2">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-xl">🏷️</div>
+                        <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-xl">
+                            {categories.find(c => c.n === r.category)?.i || '💰'}
+                        </div>
                         <div><div className="font-bold text-sm text-gray-800">{r.category}</div><div className="text-[9px] text-gray-400">{r.dateStr}</div></div>
                     </div>
                     <div className="font-black text-red-500">-$ {r.amount}</div>
@@ -144,7 +157,7 @@
             return (
                 <div className="space-y-4">
                     <div className="ios-card p-6 bg-gray-900 text-white text-center">
-                        <div className="text-[10px] opacity-50 mb-1 tracking-widest">TOTAL BALANCE</div>
+                        <div className="text-[10px] opacity-50 mb-1 tracking-widest">TOTAL EXPENSES</div>
                         <div className="text-4xl font-black">$ {total.toLocaleString()}</div>
                     </div>
                 </div>
@@ -152,9 +165,9 @@
         }
 
         const TabIcon = ({ active, icon, label, onClick }) => (
-            <button onClick={onClick} className={`flex flex-col items-center gap-0.5 ${active ? 'text-orange-500' : 'text-gray-300'}`}>
-                <span className="text-2xl">{icon}</span>
-                <span className="text-[10px] font-bold">{label}</span>
+            <button onClick={onClick} className={`flex flex-col items-center ${active ? 'text-orange-500' : 'text-gray-300'}`}>
+                <span className="text-xl">{icon}</span>
+                <span className="text-[9px] font-bold mt-0.5">{label}</span>
             </button>
         );
 
