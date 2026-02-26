@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ML Budget V4.6</title>
+    <title>ML Budget V4.7</title>
     <link rel="apple-touch-icon" id="dynamic-icon">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -12,19 +12,17 @@
     <style>
         body { background-color: #F2F2F7; font-family: -apple-system, sans-serif; overflow: hidden; height: 100dvh; margin: 0; }
         #root { height: 100dvh; }
-        .ios-card { background: white; border-radius: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
-        .category-scroll-area { max-height: 155px; overflow-y: auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 4px; }
-        .category-scroll-area::-webkit-scrollbar { display: none; }
-        .keypad-btn { background: white; border-radius: 12px; font-size: 24px; font-weight: 600; height: 54px; display: flex; align-items: center; justify-content: center; border: 1px solid #E5E5EA; transition: all 0.1s; -webkit-tap-highlight-color: transparent; }
-        .keypad-btn:active { background: #E5E5EA; transform: scale(0.95); }
+        .ios-card { background: white; border-radius: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
         .safe-pb { padding-bottom: calc(env(safe-area-inset-bottom) + 12px); }
         
-        /* 內建彈窗樣式 */
+        /* 動畫效果 */
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 底部彈窗 */
         .modal-overlay { background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); position: absolute; inset: 0; z-index: 100; display: flex; align-items: flex-end; }
-        .modal-content { background: white; width: 100%; border-radius: 24px 24px 0 0; padding: 24px; padding-bottom: calc(30px + env(safe-area-inset-bottom)); box-shadow: 0 -10px 25px rgba(0,0,0,0.1); }
-        
-        @keyframes shake { 0% { transform: rotate(-1deg); } 50% { transform: rotate(1deg); } 100% { transform: rotate(-1deg); } }
-        .edit-active { animation: shake 0.2s infinite; border: 1.5px solid #FF3B30 !important; background: #FFF5F5 !important; }
+        .modal-content { background: white; width: 100%; border-radius: 24px 24px 0 0; padding: 24px; padding-bottom: calc(30px + env(safe-area-inset-bottom)); }
     </style>
 </head>
 <body>
@@ -33,41 +31,18 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef } = React;
 
-        const generateIcon = () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = 180; canvas.height = 180;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = 'white';
-            ctx.beginPath(); ctx.roundRect(0, 0, 180, 180, 40); ctx.fill();
-            const img = new Image();
-            img.crossOrigin = "anonymous";
-            img.onload = () => {
-                ctx.drawImage(img, 30, 35, 120, 120);
-                ctx.fillStyle = '#007aff';
-                ctx.beginPath(); ctx.arc(35, 35, 26, 0, Math.PI * 2); ctx.fill();
-                ctx.strokeStyle = 'white'; ctx.lineWidth = 4; ctx.stroke();
-                ctx.fillStyle = 'white'; ctx.font = 'bold 32px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.fillText('$', 35, 37);
-                document.getElementById('dynamic-icon').href = canvas.toDataURL('image/png');
-            };
-            img.src = "https://cdn-icons-png.flaticon.com/512/2395/2395826.png"; 
-        };
-        generateIcon();
-
         function App() {
             const [view, setView] = useState('input'); 
             const [amount, setAmount] = useState('0');
             const [isEditMode, setIsEditMode] = useState(false);
             const [showModal, setShowModal] = useState(false);
-            
-            // 新分類輸入狀態
             const [newCatName, setNewCatName] = useState('');
             const [newCatEmoji, setNewCatEmoji] = useState('💰');
 
-            // 使用 V4.6 專屬 Key，防止被舊緩存卡住
-            const [records, setRecords] = useState(() => JSON.parse(localStorage.getItem('ML_V46_DATA') || '[]'));
+            // 數據持久化
+            const [records, setRecords] = useState(() => JSON.parse(localStorage.getItem('ML_V47_DATA') || '[]'));
             const [categories, setCategories] = useState(() => {
-                const saved = JSON.parse(localStorage.getItem('ML_V46_CATS'));
+                const saved = JSON.parse(localStorage.getItem('ML_V47_CATS'));
                 return (saved && saved.length) ? saved : [
                     {n:'餐廳',i:'🍽️'},{n:'日用品',i:'🧻'},{n:'超市',i:'🛒'},
                     {n:'娛樂',i:'🎮'},{n:'車',i:'🚗'},{n:'其他',i:'💰'}
@@ -75,124 +50,230 @@
             });
             const [selectedCat, setSelectedCat] = useState(categories[0]?.n);
 
-            useEffect(() => { localStorage.setItem('ML_V46_DATA', JSON.stringify(records)); }, [records]);
-            useEffect(() => { localStorage.setItem('ML_V46_CATS', JSON.stringify(categories)); }, [categories]);
+            useEffect(() => { localStorage.setItem('ML_V47_DATA', JSON.stringify(records)); }, [records]);
+            useEffect(() => { localStorage.setItem('ML_V47_CATS', JSON.stringify(categories)); }, [categories]);
 
             const handleSave = () => {
                 if (amount === '0' || amount === '0.') return;
-                setRecords([{ id: Date.now(), amount: parseFloat(amount), category: selectedCat, timestamp: Date.now(), dateStr: new Date().toLocaleDateString() }, ...records]);
+                const newRecord = { 
+                    id: Date.now(), 
+                    amount: parseFloat(amount), 
+                    category: selectedCat, 
+                    timestamp: Date.now(), 
+                    dateStr: new Date().toLocaleDateString('zh-HK') 
+                };
+                setRecords([newRecord, ...records]);
                 setAmount('0');
             };
 
-            const addCategory = () => {
-                if (!newCatName.trim()) return;
-                setCategories([...categories, { n: newCatName, i: newCatEmoji }]);
-                setNewCatName('');
-                setShowModal(false);
-            };
-
-            const deleteCategory = (name) => {
-                if (confirm(`確定刪除「${name}」？`)) {
-                    setCategories(categories.filter(c => c.n !== name));
-                }
-            };
-
             return (
-                <div className="flex flex-col h-full max-w-md mx-auto relative bg-[#F2F2F7]">
+                <div className="flex flex-col h-full max-w-md mx-auto relative bg-[#F2F2F7] text-gray-900">
                     {/* Header */}
-                    <div className="flex-none pt-12 px-5 pb-2 flex justify-between items-center">
-                        <div className="flex items-center gap-3">
-                            <div className="relative w-10 h-10">
-                                <img src="https://cdn-icons-png.flaticon.com/512/2395/2395826.png" className="w-full h-full object-contain" />
-                                <div className="absolute -top-1 -left-1 w-5 h-5 bg-[#007aff] rounded-full flex items-center justify-center border-2 border-white shadow-sm">
-                                    <span className="text-[10px] text-white font-black">$</span>
-                                </div>
-                            </div>
-                            <h1 className="text-xl font-black text-gray-900 tracking-tight">ML Budget</h1>
+                    <header className="flex-none pt-12 px-5 pb-3 flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                            <span className="text-2xl">🦒</span>
+                            <h1 className="text-xl font-black tracking-tight">ML Budget</h1>
                         </div>
                         <div className="flex items-center gap-2">
-                            <button onClick={() => setIsEditMode(!isEditMode)} className={`px-3 py-1 rounded-full text-[10px] font-black ${isEditMode ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
-                                {isEditMode ? '完成' : '編輯分類'}
-                            </button>
-                            <span className="px-2 py-0.5 bg-orange-100 text-orange-600 text-[10px] font-black rounded">V4.6</span>
+                            {view === 'input' && (
+                                <button onClick={() => setIsEditMode(!isEditMode)} className={`px-3 py-1 rounded-full text-[10px] font-black transition-all ${isEditMode ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                                    {isEditMode ? '完成' : '編輯分類'}
+                                </button>
+                            )}
+                            <span className="px-2 py-0.5 bg-white border text-[10px] font-bold rounded-lg shadow-sm">V4.7</span>
                         </div>
-                    </div>
+                    </header>
 
-                    <div className="flex-1 px-4 overflow-hidden flex flex-col">
-                        {view === 'input' ? (
-                            <>
-                                <div className="flex-none ios-card p-4 text-right border mb-2">
-                                    <div className="text-[10px] font-bold text-gray-400">EXPENSE (HKD)</div>
-                                    <div className="text-4xl font-black text-gray-900 tracking-tighter"><span className="text-xl mr-1 text-orange-500">$</span>{amount}</div>
+                    {/* Main Content */}
+                    <main className="flex-1 px-4 overflow-hidden flex flex-col">
+                        {view === 'input' && (
+                            <div className="fade-in flex flex-col h-full">
+                                <div className="flex-none ios-card p-5 text-right mb-3 border border-white">
+                                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Spending (HKD)</div>
+                                    <div className="text-5xl font-black tracking-tighter text-gray-900">
+                                        <span className="text-2xl mr-1 text-orange-500 font-bold">$</span>{amount}
+                                    </div>
                                 </div>
 
-                                <div className="flex-none mb-2">
-                                    <div className="category-scroll-area no-scrollbar">
+                                <div className="flex-none mb-3 overflow-x-auto no-scrollbar">
+                                    <div className="grid grid-cols-4 gap-2 min-w-full">
                                         {categories.map(cat => (
                                             <button key={cat.n} 
-                                                onClick={() => isEditMode ? deleteCategory(cat.n) : setSelectedCat(cat.n)}
-                                                className={`relative py-2 rounded-xl border flex flex-col items-center transition-all ${selectedCat === cat.n && !isEditMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-500 border-transparent'} ${isEditMode ? 'edit-active' : 'shadow-sm'}`}>
-                                                {isEditMode && <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px]">×</div>}
-                                                <span className="text-lg">{cat.i}</span><span className="text-[9px] font-bold">{cat.n}</span>
+                                                onClick={() => isEditMode ? setCategories(categories.filter(c => c.n !== cat.n)) : setSelectedCat(cat.n)}
+                                                className={`relative py-3 rounded-2xl border transition-all flex flex-col items-center ${selectedCat === cat.n && !isEditMode ? 'bg-gray-900 text-white shadow-lg scale-105' : 'bg-white text-gray-500 border-transparent shadow-sm'}`}>
+                                                {isEditMode && <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold">×</div>}
+                                                <span className="text-2xl mb-1">{cat.i}</span>
+                                                <span className="text-[10px] font-black">{cat.n}</span>
                                             </button>
                                         ))}
-                                        <button onClick={() => setShowModal(true)} className="py-2 rounded-xl border border-dashed border-gray-300 bg-gray-50 text-gray-400">
-                                            <span className="text-lg">＋</span><span className="text-[9px] font-bold">新增</span>
+                                        <button onClick={() => setShowModal(true)} className="py-3 rounded-2xl border border-dashed border-gray-300 bg-gray-50 text-gray-400 flex flex-col items-center justify-center">
+                                            <span className="text-xl">＋</span>
+                                            <span className="text-[10px] font-black">新增</span>
                                         </button>
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-2 flex-none">
+                                <div className="grid grid-cols-3 gap-2 mb-3">
                                     {[1,2,3,4,5,6,7,8,9,'.',0].map(n => (
-                                        <button key={n} onClick={() => setAmount(p => p==='0' && n!=='.'?String(n):p+n)} className="keypad-btn shadow-sm">{n}</button>
+                                        <button key={n} onClick={() => setAmount(p => p==='0' && n!=='.'?String(n):p+n)} className="ios-card h-14 text-2xl font-black active:bg-gray-100 transition-colors">{n}</button>
                                     ))}
-                                    <button onClick={() => setAmount('0')} className="keypad-btn text-red-500 font-bold shadow-sm">C</button>
+                                    <button onClick={() => setAmount('0')} className="ios-card h-14 text-2xl font-black text-red-500 active:bg-red-50">C</button>
                                 </div>
 
-                                <button onClick={handleSave} className="flex-none bg-[#FF6B00] text-white h-12 rounded-2xl font-black text-lg shadow-lg mt-3 active:scale-95 transition-transform">儲存支出</button>
-                                <div className="h-24 flex-none"></div>
-                            </>
-                        ) : view === 'history' ? (
-                            <div className="h-full overflow-y-auto pb-32 no-scrollbar pt-2">
-                                {records.map(r => (
-                                    <SwipeRow key={r.id} record={r} onDelete={() => setRecords(records.filter(x => x.id !== r.id))} categories={categories} />
+                                <button onClick={handleSave} className="w-full bg-orange-500 text-white h-14 rounded-2xl font-black text-xl shadow-lg shadow-orange-200 active:scale-[0.98] transition-all">儲存支出</button>
+                            </div>
+                        )}
+
+                        {view === 'history' && (
+                            <div className="fade-in h-full overflow-y-auto pb-32 no-scrollbar">
+                                {records.length === 0 ? <EmptyState /> : records.map(r => (
+                                    <HistoryRow key={r.id} record={r} categories={categories} onDelete={() => setRecords(records.filter(x => x.id !== r.id))} />
                                 ))}
                             </div>
-                        ) : (
-                            <div className="h-full overflow-y-auto pb-32 no-scrollbar pt-2">
+                        )}
+
+                        {view === 'stats' && (
+                            <div className="fade-in h-full overflow-y-auto pb-32 no-scrollbar">
                                 <StatsView records={records} categories={categories} />
                             </div>
                         )}
-                    </div>
+                    </main>
 
-                    {/* 內建新增彈窗 (取代 prompt) */}
+                    {/* Modals & Nav */}
                     {showModal && (
                         <div className="modal-overlay" onClick={() => setShowModal(false)}>
                             <div className="modal-content" onClick={e => e.stopPropagation()}>
-                                <div className="flex justify-between items-center mb-6">
-                                    <h2 className="text-xl font-black">新增分類</h2>
-                                    <button onClick={() => setShowModal(false)} className="text-gray-400 text-2xl">×</button>
-                                </div>
-                                <div className="space-y-5">
-                                    <div>
-                                        <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block">分類名稱</label>
-                                        <input autoFocus className="w-full bg-gray-100 p-4 rounded-2xl font-bold outline-none" placeholder="例如：咖啡" value={newCatName} onChange={e => setNewCatName(e.target.value)} />
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block">圖示 (Emoji)</label>
-                                        <input className="w-full bg-gray-100 p-4 rounded-2xl text-2xl outline-none" placeholder="☕️" value={newCatEmoji} onChange={e => setNewCatEmoji(e.target.value)} />
-                                    </div>
-                                    <button onClick={addCategory} className="w-full bg-black text-white py-4 rounded-2xl font-black text-lg shadow-xl active:scale-95 transition-transform">確認加入</button>
+                                <h2 className="text-xl font-black mb-6">新增消費分類</h2>
+                                <div className="space-y-4">
+                                    <input autoFocus className="w-full bg-gray-100 p-4 rounded-2xl font-bold text-lg outline-none border-2 border-transparent focus:border-orange-500 transition-all" placeholder="分類名稱 (如：咖啡)" value={newCatName} onChange={e => setNewCatName(e.target.value)} />
+                                    <input className="w-full bg-gray-100 p-4 rounded-2xl text-3xl outline-none border-2 border-transparent focus:border-orange-500 transition-all" placeholder="圖示 (Emoji)" value={newCatEmoji} onChange={e => setNewCatEmoji(e.target.value)} />
+                                    <button onClick={() => {
+                                        if(!newCatName) return;
+                                        setCategories([...categories, {n: newCatName, i: newCatEmoji}]);
+                                        setNewCatName(''); setShowModal(false);
+                                    }} className="w-full bg-black text-white py-4 rounded-2xl font-black text-lg">加入列表</button>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* Tab Bar */}
-                    <div className="flex-none bg-white/90 backdrop-blur-xl border-t px-12 pt-3 flex justify-between absolute bottom-0 left-0 right-0 safe-pb shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+                    <nav className="flex-none bg-white/80 backdrop-blur-xl border-t px-10 pt-3 flex justify-between absolute bottom-0 left-0 right-0 safe-pb shadow-2xl">
                         <TabBtn active={view==='input'} icon="➕" label="記帳" onClick={()=>setView('input')} />
                         <TabBtn active={view==='history'} icon="📜" label="明細" onClick={()=>setView('history')} />
                         <TabBtn active={view==='stats'} icon="📊" label="統計" onClick={()=>setView('stats')} />
+                    </nav>
+                </div>
+            );
+        }
+
+        // --- 子組件 ---
+
+        function StatsView({ records, categories }) {
+            const [offset, setOffset] = useState(0);
+            const stats = useMemo(() => {
+                const now = new Date();
+                const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+                const start = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
+                const end = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59).getTime();
+                const filtered = records.filter(r => r.timestamp >= start && r.timestamp <= end);
+                
+                const total = filtered.reduce((s, r) => s + r.amount, 0);
+                const count = filtered.length;
+                const dailyAvg = total / (new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate());
+                
+                const catMap = filtered.reduce((acc, r) => {
+                    acc[r.category] = (acc[r.category] || 0) + r.amount;
+                    return acc;
+                }, {});
+
+                return { 
+                    total, count, dailyAvg, 
+                    catList: Object.entries(catMap).sort((a,b) => b[1] - a[1]),
+                    label: `${d.getFullYear()}年 ${d.getMonth() + 1}月`
+                };
+            }, [offset, records]);
+
+            return (
+                <div className="space-y-4">
+                    {/* 月份切換 */}
+                    <div className="flex items-center justify-between bg-white p-3 rounded-2xl shadow-sm">
+                        <button onClick={() => setOffset(offset - 1)} className="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-xl text-orange-500 font-bold">◀</button>
+                        <div className="text-center">
+                            <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Monthly Analysis</div>
+                            <div className="font-black text-lg">{stats.label}</div>
+                        </div>
+                        <button onClick={() => setOffset(offset + 1)} className="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-xl text-orange-500 font-bold">▶</button>
+                    </div>
+
+                    {/* 數據概覽 */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="ios-card p-4 bg-gray-900 text-white">
+                            <div className="text-[10px] font-bold text-gray-400 mb-1">總支出</div>
+                            <div className="text-2xl font-black">${stats.total.toLocaleString()}</div>
+                        </div>
+                        <div className="ios-card p-4">
+                            <div className="text-[10px] font-bold text-gray-400 mb-1">平均/日</div>
+                            <div className="text-2xl font-black text-orange-500">${Math.round(stats.dailyAvg).toLocaleString()}</div>
+                        </div>
+                    </div>
+
+                    {/* 分類清單 */}
+                    <div className="ios-card p-5 space-y-6">
+                        <div className="flex justify-between items-end">
+                            <h3 className="font-black text-sm text-gray-400 uppercase tracking-widest">分類每月總額</h3>
+                            <span className="text-[10px] font-bold px-2 py-1 bg-gray-100 rounded-lg">{stats.count} 筆交易</span>
+                        </div>
+                        
+                        {stats.catList.length > 0 ? stats.catList.map(([name, amt]) => {
+                            const pct = ((amt / stats.total) * 100).toFixed(1);
+                            const icon = categories.find(c => c.n === name)?.i || '💰';
+                            return (
+                                <div key={name} className="space-y-2">
+                                    <div className="flex justify-between items-center">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xl">{icon}</span>
+                                            <span className="font-black text-sm">{name}</span>
+                                            <span className="text-[10px] font-bold text-gray-300">{pct}%</span>
+                                        </div>
+                                        <div className="font-black text-sm">${amt.toLocaleString()}</div>
+                                    </div>
+                                    <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                                        <div className="bg-orange-500 h-full transition-all duration-500" style={{width: `${pct}%`}}></div>
+                                    </div>
+                                </div>
+                            );
+                        }) : <div className="text-center py-10 text-gray-300 font-bold">本月無數據</div>}
+                    </div>
+                </div>
+            );
+        }
+
+        function HistoryRow({ record, categories, onDelete }) {
+            const [x, setX] = useState(0);
+            const icon = categories.find(c => c.n === record.category)?.i || '💰';
+            return (
+                <div className="relative overflow-hidden mb-3 rounded-2xl group">
+                    <div className="absolute inset-0 bg-red-500 flex justify-end items-center pr-6 text-white font-black" onClick={onDelete}>刪除</div>
+                    <div className="relative bg-white p-4 flex justify-between items-center transition-transform duration-200 shadow-sm"
+                        style={{ transform: `translateX(${x}px)` }}
+                        onTouchStart={e => this.start = e.touches[0].clientX}
+                        onTouchMove={e => {
+                            const diff = e.touches[0].clientX - this.start;
+                            if (diff < 0) setX(diff);
+                        }}
+                        onTouchEnd={() => setX(x < -50 ? -80 : 0)}
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-2xl">{icon}</div>
+                            <div>
+                                <div className="font-black text-gray-800">{record.category}</div>
+                                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{record.dateStr}</div>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <div className="font-black text-red-500 text-lg">-${record.amount.toLocaleString()}</div>
+                            <div className="text-[8px] font-bold text-gray-300">HKD</div>
+                        </div>
                     </div>
                 </div>
             );
@@ -200,79 +281,18 @@
 
         function TabBtn({ active, icon, label, onClick }) {
             return (
-                <button onClick={onClick} className={`flex flex-col items-center transition-all ${active ? 'text-orange-500 scale-105' : 'text-gray-300'}`}>
-                    <span className="text-2xl leading-none">{icon}</span>
-                    <span className="text-[10px] font-black mt-1">{label}</span>
+                <button onClick={onClick} className={`flex flex-col items-center transition-all ${active ? 'text-orange-500 scale-110' : 'text-gray-300'}`}>
+                    <span className="text-2xl mb-1">{icon}</span>
+                    <span className="text-[10px] font-black uppercase tracking-tighter">{label}</span>
                 </button>
             );
         }
 
-        function SwipeRow({ record, onDelete, categories }) {
-            const [offsetX, setOffsetX] = useState(0);
-            const startX = useRef(0);
+        function EmptyState() {
             return (
-                <div className="relative overflow-hidden mb-2 rounded-xl">
-                    <div className="absolute inset-0 bg-red-500 flex justify-end items-center pr-6 text-white font-black" onClick={onDelete}>刪除</div>
-                    <div className="relative bg-white p-4 flex justify-between items-center shadow-sm transition-transform"
-                        style={{ transform: `translateX(${offsetX}px)` }}
-                        onTouchStart={e => startX.current = e.touches[0].clientX}
-                        onTouchMove={e => {
-                            const diff = e.touches[0].clientX - startX.current;
-                            if (diff < 0) setOffsetX(diff);
-                        }}
-                        onTouchEnd={() => setOffsetX(offsetX < -50 ? -80 : 0)}
-                    >
-                        <div className="flex items-center gap-4">
-                            <span className="text-xl">{categories.find(c => c.n === record.category)?.i || '💰'}</span>
-                            <div>
-                                <div className="font-bold text-gray-800 text-sm">{record.category}</div>
-                                <div className="text-[10px] text-gray-400 font-bold">{record.dateStr}</div>
-                            </div>
-                        </div>
-                        <div className="font-black text-red-500">-$ {record.amount.toLocaleString()}</div>
-                    </div>
-                </div>
-            );
-        }
-
-        function StatsView({ records, categories }) {
-            const [offset, setOffset] = useState(0);
-            const dateLabel = useMemo(() => {
-                const d = new Date(); d.setMonth(d.getMonth() + offset);
-                return `${d.getFullYear()}年 ${d.getMonth()+1}月`;
-            }, [offset]);
-            const stats = useMemo(() => {
-                const now = new Date();
-                const start = new Date(now.getFullYear(), now.getMonth() + offset, 1).getTime();
-                const end = new Date(now.getFullYear(), now.getMonth() + offset + 1, 0, 23, 59, 59).getTime();
-                const filtered = records.filter(r => r.timestamp >= start && r.timestamp <= end);
-                const total = filtered.reduce((s, r) => s + r.amount, 0);
-                const catMap = filtered.reduce((acc, r) => { acc[r.category] = (acc[r.category] || 0) + r.amount; return acc; }, {});
-                return { total, catMap };
-            }, [offset, records]);
-
-            return (
-                <div className="space-y-4">
-                    <div className="flex items-center justify-between bg-white p-2 rounded-xl border shadow-sm">
-                        <button onClick={() => setOffset(offset - 1)} className="w-10 h-10 text-orange-500 font-black text-xl">◀</button>
-                        <span className="font-black text-gray-800">{dateLabel}</span>
-                        <button onClick={() => setOffset(offset + 1)} className="w-10 h-10 text-orange-500 font-black text-xl">▶</button>
-                    </div>
-                    <div className="ios-card p-6 bg-gray-900 text-white text-center shadow-lg"><div className="text-3xl font-black">$ {stats.total.toLocaleString()}</div></div>
-                    <div className="ios-card p-4">
-                        {Object.entries(stats.catMap).sort((a,b)=>b[1]-a[1]).map(([name, amt]) => (
-                            <div key={name} className="mb-4 last:mb-0">
-                                <div className="flex justify-between text-xs font-bold mb-1">
-                                    <span>{categories.find(c => c.n === name)?.i} {name}</span>
-                                    <span>${amt.toLocaleString()}</span>
-                                </div>
-                                <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
-                                    <div className="bg-orange-500 h-full" style={{width: `${stats.total ? (amt/stats.total*100) : 0}%`}}></div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                    {offset !== 0 && <button onClick={() => setOffset(0)} className="w-full py-2 text-[10px] font-black text-orange-500 underline">返回本月</button>}
+                <div className="h-full flex flex-col items-center justify-center text-gray-300 space-y-2">
+                    <span className="text-6xl">📝</span>
+                    <span className="font-black">尚無任何支出紀錄</span>
                 </div>
             );
         }
